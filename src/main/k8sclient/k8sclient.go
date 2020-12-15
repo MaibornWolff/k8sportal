@@ -1,31 +1,38 @@
 package k8sclient
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
-func Inform() {
-	log.Print("Shared Informer app started")
-	kubeconfig := os.Getenv("KUBECONFIG")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Panic(err.Error())
+//GetServices Returns all services with the label showOnCLusterPortal: true
+func GetServices(kubeClient kubernetes.Interface) {
+
+	options := metav1.ListOptions{
+		LabelSelector: "showOnClusterPortal=true",
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, 0)
+	ctx := context.Background()
+
+	svcList, _ := kubeClient.CoreV1().Services("").List(ctx, options)
+
+	log.Print("received " + *svcList)
+
+}
+
+//TODO Add mongodb client, so changes can be made
+
+func Inform(kubeClient kubernetes.Interface) {
+
+	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 	informer := factory.Core().V1().Services().Informer()
 
 	stopper := make(chan struct{})
@@ -35,7 +42,9 @@ func Inform() {
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: onUpdate,
 	})
+
 	go informer.Run(stopper)
+
 	if !cache.WaitForCacheSync(stopper, informer.HasSynced) {
 		runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
 		return
@@ -49,3 +58,7 @@ func onUpdate(old interface{}, new interface{}) {
 	log.Print("Service Changed")
 
 }
+
+//TODO onAdd
+
+//TODO onDelte
