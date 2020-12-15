@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func inform() {
+func Inform() {
 	log.Print("Shared Informer app started")
 	kubeconfig := os.Getenv("KUBECONFIG")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -43,7 +43,7 @@ func inform() {
 	<-stopper
 }
 
-func onUpdate(obj interface{}, obj2 interface{}) {
+func onUpdate(old interface{}, new interface{}) {
 	// Cast the obj as Service
 	//service := obj.(*corev1.Service)
 	log.Print("Service Changed")

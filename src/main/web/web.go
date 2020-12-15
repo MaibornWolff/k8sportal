@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func startWebserver() {
+func StartWebserver() {
 
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
