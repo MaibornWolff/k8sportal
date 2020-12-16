@@ -10,8 +10,8 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	"github.com/vrischmann/envconfig"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -19,6 +19,7 @@ import (
 func main() {
 
 	//initialize config from environment
+
 	err := envconfig.Init(&config)
 
 	if err != nil {
@@ -49,7 +50,8 @@ func main() {
 
 	//create new mongodb client
 	ctx := context.Background()
-	mongoClient, err := mongodb.Connect(ctx, "mongodb.default.svc.cluster.local") //TODO Change host/pw to config
+
+	mongoClient, err := mongodb.Connect(ctx, "mongodb://root:dummypw@mongodb.default.svc.cluster.local:27017/?authSource=admin") //TODO Change host/pw to config
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to MongoDB")
 	}
@@ -57,7 +59,7 @@ func main() {
 
 	k8sclient.GetServices(kubeClient, mongoClient) //TODO parameterize mongodb
 
-	log.Print("svcs successfully taken")
+	log.Print("services successfully taken")
 	//TODO Backend
 
 	//TODO Services in DB are getting deleted, if they aren't in the List

@@ -29,22 +29,25 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 		log.Fatal().Err(err).Msg("Failed to get running services from kubernetes cluster")
 	}
 
-	log.Info().Msgf("Found %v services to show on portal", len((*svcList).Items))
+	if len((*svcList).Items) == 0 {
+		log.Info().Msgf("Found no services to show on portal")
+	} else {
 
-	err = mongoClient.Database("k8sportal").Collection("portal-services").Drop(ctx) //TODO Parameterize
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
-	}
-
-	for _, svcInfo := range (*svcList).Items {
-
-		svc := model.Service{svcInfo.Name, "", "", true}
-
-		_, err = mongoClient.Database("k8sportal").Collection("portal-services").InsertOne(ctx, svc) //TODO Parameterize
+		err = mongoClient.Database("k8sportal").Collection("portal-services").Drop(ctx) //TODO Parameterize
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
+			log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
 		}
-		log.Info().Msgf("added the service %v to the database\n", svcInfo.Name)
+
+		for _, svcInfo := range (*svcList).Items {
+
+			svc := model.Service{svcInfo.Name, "", "", true}
+
+			_, err = mongoClient.Database("k8sportal").Collection("portal-services").InsertOne(ctx, svc) //TODO Parameterize
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
+			}
+			log.Info().Msgf("added the service %v to the database\n", svcInfo.Name)
+		}
 	}
 
 }
