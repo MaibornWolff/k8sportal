@@ -3,8 +3,9 @@ package k8sclient
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/mongo"
 	"k8s.io/apimachinery/pkg/util/runtime"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +15,7 @@ import (
 )
 
 //GetServices Returns all services with the label showOnCLusterPortal: true
-func GetServices(kubeClient kubernetes.Interface) {
+func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	options := metav1.ListOptions{
 		LabelSelector: "showOnClusterPortal=true",
@@ -22,14 +23,21 @@ func GetServices(kubeClient kubernetes.Interface) {
 
 	ctx := context.Background()
 
-	svcList, _ := kubeClient.CoreV1().Services("").List(ctx, options)
+	svcList, err := kubeClient.CoreV1().Services("").List(ctx, options)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get running services from ")
+	} else {
 
-	log.Print("received " + *svcList)
+		for _, svcInfo := range (*svcList).Items {
+			log.Printf("svc-name=%v\n", svcInfo.Name)
+
+		}
+	}
 
 }
 
 //TODO Add mongodb client, so changes can be made
-
+//INFORM reacts to changed services
 func Inform(kubeClient kubernetes.Interface) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)

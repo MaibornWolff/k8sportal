@@ -1,34 +1,64 @@
 package main
 
 import (
+	"context"
 	"k8sportal/k8sclient"
+	"k8sportal/mongodb"
 	"k8sportal/web"
-	"log"
 	"os"
+	"strings"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"github.com/vrischmann/envconfig"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 func main() {
 
+	//initialize config from environment
+	err := envconfig.Init(&config)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to read config")
+	}
+
+	//set loglevel
+	logLevel, err := zerolog.ParseLevel(strings.ToLower(config.LogLevel))
+
+	zerolog.SetGlobalLevel(logLevel)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse log level")
+	}
+
+	//create kubernetes client
 	kubeconfig := os.Getenv("KUBECONFIG")
 
-	//initialize kubernetes client
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		log.Panic(err.Error())
+		log.Fatal().Err(err).Msg("Failed to build kubeConfig")
 	}
 
-	//create new client with the given config
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		log.Panic(err.Error())
+		log.Fatal().Err(err).Msg("Failed to build kubeClient")
 	}
 
-	//Get all running services in the Cluster, which have the Label "showOnClusterPortal: true"
-	k8sclient.GetServices(kubeClient)
+	//create new mongodb client
+	ctx := context.Background()
+	mongoClient, err := mongodb.Connect(ctx, "mongodb.default.svc.cluster.local") //TODO Change host/pw to config
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to MongoDB")
+	}
+	defer mongoClient.Disconnect(ctx)
 
+	//Save all running services in the Cluster, which have the Label "showOnClusterPortal: true in the database"
+	k8sclient.GetServices(kubeClient, mongoClient)
+
+	log.Print("svcs successfully taken")
 	//TODO Backend
 
 	//TODO Services in DB are getting deleted, if they aren't in the List
@@ -38,7 +68,7 @@ func main() {
 
 	//start the informer factory, to react to changes of services in the cluster
 	//TODO
-	k8sclient.Inform(kubeClient)
+	go k8sclient.Inform(kubeClient)
 
 	//TODO Server
 	//TODO Get list of running services from mongodb, if a request comes in
