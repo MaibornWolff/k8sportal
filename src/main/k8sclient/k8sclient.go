@@ -3,6 +3,7 @@ package k8sclient
 import (
 	"context"
 	"fmt"
+	"k8sportal/model"
 
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,19 +26,30 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	svcList, err := kubeClient.CoreV1().Services("").List(ctx, options)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get running services from ")
-	} else {
+		log.Fatal().Err(err).Msg("Failed to get running services from kubernetes cluster")
+	}
 
-		for _, svcInfo := range (*svcList).Items {
-			log.Printf("svc-name=%v\n", svcInfo.Name)
+	log.Info().Msgf("Found %v services to show on portal", len((*svcList).Items))
 
+	err = mongoClient.Database("k8sportal").Collection("portal-services").Drop(ctx) //TODO Parameterize
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
+	}
+
+	for _, svcInfo := range (*svcList).Items {
+
+		svc := model.Service{svcInfo.Name, "", "", true}
+
+		_, err = mongoClient.Database("k8sportal").Collection("portal-services").InsertOne(ctx, svc) //TODO Parameterize
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
 		}
+		log.Info().Msgf("added the service %v to the database\n", svcInfo.Name)
 	}
 
 }
 
-//TODO Add mongodb client, so changes can be made
-//INFORM reacts to changed services
+//Inform reacts to changed services  TODO Add mongodb client, so changes can be made
 func Inform(kubeClient kubernetes.Interface) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)

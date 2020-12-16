@@ -55,8 +55,7 @@ func main() {
 	}
 	defer mongoClient.Disconnect(ctx)
 
-	//Save all running services in the Cluster, which have the Label "showOnClusterPortal: true in the database"
-	k8sclient.GetServices(kubeClient, mongoClient)
+	k8sclient.GetServices(kubeClient, mongoClient) //TODO parameterize mongodb
 
 	log.Print("svcs successfully taken")
 	//TODO Backend
