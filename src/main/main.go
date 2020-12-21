@@ -69,7 +69,7 @@ func main() {
 
 	//start the informer factory, to react to changes of services in the cluster
 	//TODO
-	go k8sclient.ServiceInform(kubeClient)
+	go k8sclient.ServiceInform(ctx, kubeClient, mongoClient)
 
 	//TODO Server
 	//TODO Get list of running services from mongodb, if a request comes in

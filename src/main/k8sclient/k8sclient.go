@@ -7,9 +7,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
-	"k8s.io/apimachinery/pkg/util/runtime"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -36,7 +37,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 		log.Info().Msgf("Found no services to show on portal")
 	} else {
 
-		err = mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
+		err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
 		}
@@ -45,7 +46,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 			svc := model.Service{svcInfo.Name, "", "", true}
 
-			_, err = mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
+			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
 			}
@@ -56,7 +57,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 }
 
 //serviceInform reacts to changed services  TODO Add mongodb client, so changes can be made
-func ServiceInform(kubeClient kubernetes.Interface) {
+func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 	informer := factory.Core().V1().Services().Informer()
@@ -66,7 +67,9 @@ func ServiceInform(kubeClient kubernetes.Interface) {
 	defer runtime.HandleCrash()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    onAdd,
+		AddFunc: func(obj interface{}) {
+			onAdd(ctx, obj, mongoClient)
+		},
 		UpdateFunc: onUpdate,
 		DeleteFunc: onDelete,
 	})
@@ -80,9 +83,18 @@ func ServiceInform(kubeClient kubernetes.Interface) {
 	<-stopper
 }
 
-func onAdd(obj interface{}) {
-	// Cast the obj as Service
-	//service := obj.(*corev1.Service)
+func onAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+
+	service := obj.(*corev1.Service)
+
+	svc := model.Service{service.Name, "", "", true}
+
+	_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to insert new added service into mongodb")
+	}
+	log.Info().Msgf("added the service %v to the database\n", service.Name)
+
 	log.Print("Service Added")
 
 }
