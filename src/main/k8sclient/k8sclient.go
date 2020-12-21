@@ -63,7 +63,9 @@ func Inform(kubeClient kubernetes.Interface) {
 	defer runtime.HandleCrash()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    onUpdate,
 		UpdateFunc: onUpdate,
+		DeleteFunc: onDelete,
 	})
 
 	go informer.Run(stopper)
@@ -75,10 +77,24 @@ func Inform(kubeClient kubernetes.Interface) {
 	<-stopper
 }
 
+func onAdd(old interface{}, new interface{}) {
+	// Cast the obj as Service
+	//service := obj.(*corev1.Service)
+	log.Print("Service Added")
+
+}
+
 func onUpdate(old interface{}, new interface{}) {
 	// Cast the obj as Service
 	//service := obj.(*corev1.Service)
 	log.Print("Service Changed")
+
+}
+
+func onDelete(old interface{}, new interface{}) {
+	// Cast the obj as Service
+	//service := obj.(*corev1.Service)
+	log.Print("Service Deleted")
 
 }
 
