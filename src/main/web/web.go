@@ -2,7 +2,6 @@ package web
 
 import (
 	"k8sportal/mongodb"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,10 +18,7 @@ func StartWebserver(mongoClient *mongo.Client) {
 	router.GET("/services", func(ctx *gin.Context) {
 		handleGetServices(ctx, mongoClient)
 	})
-	go router.Run(":80")
-
-	log.Print("Webserver Works")
-
+	router.Run(":80")
 }
 
 func handleGetServices(c *gin.Context, mongoClient *mongo.Client) {

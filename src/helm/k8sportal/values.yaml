@@ -52,7 +52,7 @@ ingress:
     # kubernetes.io/tls-acme: "true"
   hosts:
     - host: portal.local
-      paths: ["/ping"]
+      paths: ["/services"]
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
