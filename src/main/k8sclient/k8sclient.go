@@ -52,8 +52,8 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 }
 
-//Inform reacts to changed services  TODO Add mongodb client, so changes can be made
-func Inform(kubeClient kubernetes.Interface) {
+//serviceInform reacts to changed services  TODO Add mongodb client, so changes can be made
+func ServiceInform(kubeClient kubernetes.Interface) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 	informer := factory.Core().V1().Services().Informer()
@@ -63,7 +63,7 @@ func Inform(kubeClient kubernetes.Interface) {
 	defer runtime.HandleCrash()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    onUpdate,
+		AddFunc:    onAdd,
 		UpdateFunc: onUpdate,
 		DeleteFunc: onDelete,
 	})
@@ -77,7 +77,7 @@ func Inform(kubeClient kubernetes.Interface) {
 	<-stopper
 }
 
-func onAdd(old interface{}, new interface{}) {
+func onAdd(obj interface{}) {
 	// Cast the obj as Service
 	//service := obj.(*corev1.Service)
 	log.Print("Service Added")
@@ -91,7 +91,7 @@ func onUpdate(old interface{}, new interface{}) {
 
 }
 
-func onDelete(old interface{}, new interface{}) {
+func onDelete(obj interface{}) {
 	// Cast the obj as Service
 	//service := obj.(*corev1.Service)
 	log.Print("Service Deleted")
