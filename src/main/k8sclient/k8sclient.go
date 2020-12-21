@@ -15,6 +15,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var mongodbdatabase = "k8sportal"
+var mongodbcollection = "portal-services"
+
 //GetServices Returns all services with the label showOnCLusterPortal: true
 func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
@@ -33,7 +36,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 		log.Info().Msgf("Found no services to show on portal")
 	} else {
 
-		err = mongoClient.Database("k8sportal").Collection("portal-services").Drop(ctx) //TODO Parameterize
+		err = mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
 		}
@@ -42,7 +45,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 			svc := model.Service{svcInfo.Name, "", "", true}
 
-			_, err = mongoClient.Database("k8sportal").Collection("portal-services").InsertOne(ctx, svc) //TODO Parameterize
+			_, err = mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
 			}

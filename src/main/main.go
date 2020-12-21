@@ -74,6 +74,6 @@ func main() {
 	//TODO Server
 	//TODO Get list of running services from mongodb, if a request comes in
 
-	web.StartWebserver()
+	web.StartWebserver(mongoClient)
 
 }
