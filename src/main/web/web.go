@@ -11,10 +11,11 @@ import (
 var mongodbdatabase = "k8sportal"
 var mongodbcollection = "portal-services"
 
-//StartWebserver Gets entries from db and presents them
+//StartWebserver Gets entries from db and presents them via the HTTP endpoint
 func StartWebserver(mongoClient *mongo.Client) {
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
 	router.GET("/services", func(ctx *gin.Context) {
 		handleGetServices(ctx, mongoClient)
 	})

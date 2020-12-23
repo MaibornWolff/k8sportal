@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"k8sportal/model"
 
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +47,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 		for _, svcInfo := range (*svcList).Items {
 
-			svc := model.Service{svcInfo.Name, "", "", true}
+			svc := model.Service{svcInfo.Name, "", true, "", "", false}
 
 			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 			if err != nil {
@@ -56,7 +59,7 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 }
 
-//serviceInform reacts to changed services  TODO Add mongodb client, so changes can be made
+//ServiceInform reacts to changed services  TODO Add mongodb client, so changes can be made
 func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
@@ -70,8 +73,12 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 		AddFunc: func(obj interface{}) {
 			onAdd(ctx, obj, mongoClient)
 		},
-		UpdateFunc: onUpdate,
-		DeleteFunc: onDelete,
+		UpdateFunc: func(old interface{}, new interface{}) {
+			onUpdate(ctx, old, new, mongoClient)
+		},
+		DeleteFunc: func(obj interface{}) {
+			onDelete(ctx, obj, mongoClient)
+		},
 	})
 
 	go informer.Run(stopper)
@@ -85,34 +92,52 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 
 func onAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
-	service := obj.(*corev1.Service)
+	newService := obj.(*corev1.Service)
+	serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
-	svc := model.Service{service.Name, "", "", true}
+	filter := bson.M{"serviceName": newService.Name}
+	update := bson.M{"$set": bson.M{"serviceOnline": true}}
 
-	_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to insert new added service into mongodb")
+	after := options.After
+	upsert := false
+	opt := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
 	}
-	log.Info().Msgf("added the service %v to the database\n", service.Name)
 
-	log.Print("Service Added")
+	result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
+	if result.Err() != nil {
+		if result.Err().Error() == "ErrNoDocuments" {
+			svc := model.Service{newService.Name, "", true, "", "", false}
+
+			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to insert new added service into mongodb")
+			}
+
+		} else {
+			log.Fatal().Err(result.Err()).Msg("Failed to insert new added service into mongodb")
+		}
+	}
+
+	log.Info().Msgf("added the service %v to the database\n", newService.Name)
 
 }
 
-func onUpdate(old interface{}, new interface{}) {
-	// Cast the obj as Service
+func onUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
+	//Cast the obj as Service
 	//service := obj.(*corev1.Service)
-	log.Print("Service Changed")
+	log.Print("Service Changed\n")
 
 }
 
-func onDelete(obj interface{}) {
-	// Cast the obj as Service
+func onDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+
 	//service := obj.(*corev1.Service)
-	log.Print("Service Deleted")
+
+	//name := service.Name
+
+	//_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).DeleteOne
+	log.Print("Service Deleted\n")
 
 }
-
-//TODO onAdd
-
-//TODO onDelte

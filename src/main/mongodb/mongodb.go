@@ -50,11 +50,12 @@ func GetAllServices(mongoClient *mongo.Client) ([]*model.Service, error) {
 
 	db := mongoClient.Database(mongodbdatabase)
 	collection := db.Collection(mongodbcollection)
-	cursor, err := collection.Find(ctx, bson.D{})
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
+
 	err = cursor.All(ctx, &services)
 	if err != nil {
 		log.Printf("Failed marshalling %v", err)
