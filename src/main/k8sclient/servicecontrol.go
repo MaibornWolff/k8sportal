@@ -12,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -22,8 +21,8 @@ import (
 var mongodbdatabase = "k8sportal"
 var mongodbcollection = "portal-services"
 
-//GetServices Returns all services with the label showOnCLusterPortal: true
-func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
+//InitServices Returns all services with the label showOnCLusterPortal: true
+/*func InitServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	options := metav1.ListOptions{
 		LabelSelector: "showOnClusterPortal=true",
@@ -40,14 +39,16 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 		log.Info().Msgf("Found no services to show on portal")
 	} else {
 
-		err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
-		}
-
 		for _, svcInfo := range (*svcList).Items {
 
-			svc := model.Service{svcInfo.Name, "", true, "", "", false}
+			svc := model.Service{
+				ServiceName:   svcInfo.Name,
+				Category:      "",
+				ServiceOnline: true,
+				IngressHost:   "",
+				IngressPath:   "",
+				IngressOnline: false,
+			}
 
 			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 			if err != nil {
@@ -57,12 +58,13 @@ func GetServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 		}
 	}
 
-}
+}*/
 
 //ServiceInform reacts to changed services  TODO Add mongodb client, so changes can be made
 func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
+
 	informer := factory.Core().V1().Services().Informer()
 
 	stopper := make(chan struct{})
@@ -93,34 +95,52 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 func onAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	newService := obj.(*corev1.Service)
-	serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
-	filter := bson.M{"serviceName": newService.Name}
-	update := bson.M{"$set": bson.M{"serviceOnline": true}}
+	newServiceAnnotations := newService.GetLabels()
+	log.Info().Msgf("Received service %v", newService.Name)
+	log.Info().Msgf("Services tags  %v", newServiceAnnotations)
 
-	after := options.After
-	upsert := false
-	opt := options.FindOneAndUpdateOptions{
-		ReturnDocument: &after,
-		Upsert:         &upsert,
-	}
+	if val, ok := newServiceAnnotations["showOnClusterPortal"]; ok && val == "true" {
 
-	result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
-	if result.Err() != nil {
-		if result.Err().Error() == "ErrNoDocuments" {
-			svc := model.Service{newService.Name, "", true, "", "", false}
+		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
-			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
-			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to insert new added service into mongodb")
-			}
+		filter := bson.M{"serviceName": newService.Name}
+		update := bson.M{"$set": bson.M{"serviceOnline": true}}
 
-		} else {
-			log.Fatal().Err(result.Err()).Msg("Failed to insert new added service into mongodb")
+		after := options.After
+		upsert := false
+		opt := options.FindOneAndUpdateOptions{
+			ReturnDocument: &after,
+			Upsert:         &upsert,
 		}
-	}
 
-	log.Info().Msgf("added the service %v to the database\n", newService.Name)
+		result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
+		if result.Err() != nil {
+			if result.Err().Error() == "ErrNoDocuments" {
+
+				svc := model.Service{
+					ServiceName:   newService.Name,
+					Category:      "",
+					ServiceOnline: true,
+					IngressHost:   "",
+					IngressPath:   "",
+					IngressOnline: false,
+				}
+
+				_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
+				if err != nil {
+					log.Fatal().Err(err).Msg("Failed to insert new added service into mongodb")
+				}
+
+			} else {
+				log.Fatal().Err(result.Err()).Msg("Failed to insert new added service into mongodb")
+			}
+		}
+
+		log.Info().Msgf("Added the service %v to the database\n", newService.Name)
+	} else {
+		log.Info().Msgf("Did not add the service %v to the database, no annotation or set on false\n", newService.Name)
+	}
 
 }
 

@@ -16,12 +16,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+var mongodbdatabase = "k8sportal"
+var mongodbcollection = "portal-services"
+
 func main() {
 
 	//initialize config from environment
-
 	err := envconfig.Init(&config)
-
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to read config")
 	}
@@ -57,22 +58,23 @@ func main() {
 	}
 	defer mongoClient.Disconnect(ctx)
 
-	k8sclient.GetServices(kubeClient, mongoClient) //TODO parameterize mongodb
+	err = mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to drop up k8sportal collection in mongodb")
+	}
+	err = mongoClient.Database(mongodbdatabase).CreateCollection(ctx, mongodbcollection)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create k8sportal collection in mongodb")
+	}
+
+	//k8sclient.InitServices(kubeClient, mongoClient) //TODO parameterize mongodb
+	//k8sclient.InitIngress(kubeClient, mongoClient)  //TODO parameterize mongodb
 
 	log.Print("services successfully taken")
-	//TODO Backend
-
-	//TODO Services in DB are getting deleted, if they aren't in the List
-	//TODO Services which aren't in the Database are added
-	//TODO Get Ingresses of the services
-	//TODO ADD FQDN of the Ingress to the DB
 
 	//start the informer factory, to react to changes of services in the cluster
-	//TODO
 	go k8sclient.ServiceInform(ctx, kubeClient, mongoClient)
-
-	//TODO Server
-	//TODO Get list of running services from mongodb, if a request comes in
+	//go k8sclient.IngressInform(ctx, kubeClient, mongoClient)
 
 	web.StartWebserver(mongoClient)
 

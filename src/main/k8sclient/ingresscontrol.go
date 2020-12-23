@@ -16,8 +16,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-//GetIngress Returns all services with the label showOnCLusterPortal: true
-func GetIngress(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
+//InitIngress Returns all services with the label showOnCLusterPortal: true
+func InitIngress(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	options := metav1.ListOptions{
 		LabelSelector: "showOnClusterPortal=true",
@@ -25,29 +25,31 @@ func GetIngress(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	ctx := context.Background()
 
-	ingressList, err := kubeClient.NetworkingV1().Ingresses("").List(ctx, options)
+	ingList, err := kubeClient.NetworkingV1().Ingresses("").List(ctx, options)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get running Ingresses from kubernetes cluster")
 	}
 
-	if len((*ingressList).Items) == 0 {
+	if len((*ingList).Items) == 0 {
 		log.Info().Msgf("Found no Ingresses to show on portal")
 	} else {
 
-		err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to clean up k8sportal collection in mongodb")
-		}
+		for _, ingInfo := range (*ingList).Items {
 
-		for _, svcInfo := range (*ingressList).Items {
-
-			svc := model.Service{svcInfo.Name, "", true, "", "", false}
+			svc := model.Service{
+				ServiceName:   ingInfo.Name,
+				Category:      "",
+				ServiceOnline: true,
+				IngressHost:   "",
+				IngressPath:   "",
+				IngressOnline: false,
+			}
 
 			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
 			}
-			log.Info().Msgf("added the service %v to the database\n", svcInfo.Name)
+			log.Info().Msgf("added the service %v to the database\n", ingInfo.Name)
 		}
 	}
 
@@ -64,13 +66,13 @@ func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 	defer runtime.HandleCrash()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			onIngAdd(ctx, obj, mongoClient)
-		},
-		UpdateFunc: onIngUpdate,
-		DeleteFunc: func(obj interface{}) {
-			onIngDelete(ctx, obj, mongoClient)
-		},
+		/*	AddFunc: func(obj interface{}) {
+				onIngAdd(ctx, obj, mongoClient)
+			},
+			UpdateFunc: onIngUpdate,
+			DeleteFunc: func(obj interface{}) {
+				onIngDelete(ctx, obj, mongoClient)
+			},*/
 	})
 
 	go informer.Run(stopper)
@@ -86,7 +88,14 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	service := obj.(*networkingv1.Ingress)
 
-	svc := model.Service{service.Name, "", true, "", "", false}
+	svc := model.Service{
+		ServiceName:   service.Name,
+		Category:      "",
+		ServiceOnline: true,
+		IngressHost:   "",
+		IngressPath:   "",
+		IngressOnline: false,
+	}
 
 	_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 	if err != nil {
