@@ -146,9 +146,9 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 }
 
 func onSvcUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
-	//Cast the obj as Service
-	//service := obj.(*corev1.Service)
-	log.Print("Service Changed\n")
+
+	onSvcDelete(ctx, old, mongoClient)
+	onSvcAdd(ctx, new, mongoClient)
 
 }
 
