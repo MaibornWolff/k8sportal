@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -22,7 +23,7 @@ var mongodbdatabase = "k8sportal"
 var mongodbcollection = "portal-services"
 
 //InitServices Returns all services with the label showOnCLusterPortal: true
-/*func InitServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
+func InitServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 
 	options := metav1.ListOptions{
 		LabelSelector: "showOnClusterPortal=true",
@@ -58,7 +59,7 @@ var mongodbcollection = "portal-services"
 		}
 	}
 
-}*/
+}
 
 //ServiceInform reacts to changed services  TODO Add mongodb client, so changes can be made
 func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
@@ -73,13 +74,13 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			onAdd(ctx, obj, mongoClient)
+			onSvcAdd(ctx, obj, mongoClient)
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
-			onUpdate(ctx, old, new, mongoClient)
+			onSvcUpdate(ctx, old, new, mongoClient)
 		},
 		DeleteFunc: func(obj interface{}) {
-			onDelete(ctx, obj, mongoClient)
+			onSvcDelete(ctx, obj, mongoClient)
 		},
 	})
 
@@ -92,12 +93,12 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 	<-stopper
 }
 
-func onAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	newService := obj.(*corev1.Service)
 
 	newServiceAnnotations := newService.GetLabels()
-	log.Info().Msgf("Received service %v", newService.Name)
+	log.Info().Msgf("onAdd received service %v", newService.Name)
 	log.Info().Msgf("Services tags  %v", newServiceAnnotations)
 
 	if val, ok := newServiceAnnotations["showOnClusterPortal"]; ok && val == "true" {
@@ -139,25 +140,63 @@ func onAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 		log.Info().Msgf("Added the service %v to the database\n", newService.Name)
 	} else {
-		log.Info().Msgf("Did not add the service %v to the database, no annotation or set on false\n", newService.Name)
+		log.Info().Msgf("Did not add service %v to the database, no annotation or set on false\n", newService.Name)
 	}
 
 }
 
-func onUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
+func onSvcUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
 	//Cast the obj as Service
 	//service := obj.(*corev1.Service)
 	log.Print("Service Changed\n")
 
 }
 
-func onDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
-	//service := obj.(*corev1.Service)
+	deletedService := obj.(*corev1.Service)
 
-	//name := service.Name
+	deletedServiceAnnotations := deletedService.GetLabels()
+	log.Info().Msgf("onDelete received service %v", deletedService.Name)
+	log.Info().Msgf("Services tags  %v", deletedServiceAnnotations)
 
-	//_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).DeleteOne
-	log.Print("Service Deleted\n")
+	if val, ok := deletedServiceAnnotations["showOnClusterPortal"]; ok && val == "true" {
+
+		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
+
+		filter := bson.M{"serviceName": deletedService.Name}
+
+		svcFromDatabase := serviceCollection.FindOne(ctx, filter)
+
+		if svcFromDatabase.Err() != nil {
+			if svcFromDatabase.Err().Error() == "ErrNoDocuments" {
+				log.Info().Msgf("Could not delete service %v from database. Does not exist ", deletedService.Name)
+			} else {
+				log.Fatal().Err(svcFromDatabase.Err()).Msg("Failed to get service that should be deleted from database")
+			}
+		} else {
+
+			var svc model.Service
+			err := svcFromDatabase.Decode(&svc)
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed marshalling service that should be deleted from database")
+			}
+
+			if svc.IngressOnline {
+
+				update := bson.M{"$set": bson.M{"serviceOnline": false}}
+
+				_ = serviceCollection.FindOneAndUpdate(ctx, filter, update)
+
+			} else {
+
+				serviceCollection.FindOneAndDelete(ctx, filter)
+
+			}
+		}
+
+	} else {
+		log.Info().Msgf("Did not delete service %v from database, no annotation or set on false\n", deletedService.Name)
+	}
 
 }

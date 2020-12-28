@@ -67,7 +67,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create k8sportal collection in mongodb")
 	}
 
-	//k8sclient.InitServices(kubeClient, mongoClient) //TODO parameterize mongodb
+	k8sclient.InitServices(kubeClient, mongoClient) //TODO parameterize mongodb
 	//k8sclient.InitIngress(kubeClient, mongoClient)  //TODO parameterize mongodb
 
 	log.Print("services successfully taken")
