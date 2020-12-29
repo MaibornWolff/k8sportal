@@ -70,11 +70,9 @@ func main() {
 	k8sclient.InitServices(kubeClient, mongoClient) //TODO parameterize mongodb
 	//k8sclient.InitIngress(kubeClient, mongoClient)  //TODO parameterize mongodb
 
-	log.Print("services successfully taken")
-
 	//start the informer factory, to react to changes of services in the cluster
 	go k8sclient.ServiceInform(ctx, kubeClient, mongoClient)
-	//go k8sclient.IngressInform(ctx, kubeClient, mongoClient)
+	go k8sclient.IngressInform(ctx, kubeClient, mongoClient)
 
 	web.StartWebserver(mongoClient)
 

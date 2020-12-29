@@ -92,9 +92,11 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	newIngress := obj.(*networkingv1.Ingress)
 
-	newIngressAnnotations := newIngress.GetLabels()
+	log.Info().Msgf("onIngAdd: Received ingress to add: %v", newIngress.Name)
 
-	if val, ok := newIngressAnnotations["showOnClusterPortal"]; ok && val == "true" {
+	newIngressLabels := newIngress.GetLabels()
+
+	if val, ok := newIngressLabels["showOnClusterPortal"]; ok && val == "true" {
 
 		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
@@ -102,69 +104,70 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 		for _, ingressRule := range newIngressRules {
 
-			ingressRuleHostName := ingressRule.Host
-			ingressRulePath := ingressRule.HTTP.Paths[0].Path
-			ingressRuleServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
+			if ingressRule.HTTP.Paths[0].Backend.Resource == nil {
 
-			log.Info().Msgf("Ingress detected")
-			log.Info().Msgf("Ingress Host Name:  %v", ingressRuleHostName)
-			log.Info().Msgf("Ingress Path:  %v", ingressRulePath)
-			log.Info().Msgf("Ingress Service Name:  %v", ingressRuleServiceName)
-			log.Info().Msgf("Let's see if it works")
+				ingressRuleHostName := ingressRule.Host
+				ingressRulePath := ingressRule.HTTP.Paths[0].Path
+				ingressRuleServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
 
-			log.Info().Msgf("onAdd received ingress %v", newIngress.Name)
-			log.Info().Msgf("ingresss tags  %v", newIngressAnnotations)
-
-			filter := bson.M{"serviceName": ingressRuleServiceName}
-			update := bson.M{
-				"$set": bson.M{
-					"ingressHost":   ingressRuleHostName,
-					"ingressPath":   ingressRulePath,
-					"ingressOnline": true,
-				},
-			}
-
-			after := options.After
-			upsert := false
-			opt := options.FindOneAndUpdateOptions{
-				ReturnDocument: &after,
-				Upsert:         &upsert,
-			}
-
-			result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
-			if result.Err() != nil {
-				if result.Err().Error() == "ErrNoDocuments" {
-
-					ing := model.Service{
-						ServiceName:   ingressRuleServiceName,
-						Category:      "",
-						ServiceOnline: false,
-						IngressHost:   ingressRuleHostName,
-						IngressPath:   ingressRulePath,
-						IngressOnline: true,
-					}
-
-					_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, ing) //TODO Parameterize
-					if err != nil {
-						log.Fatal().Err(err).Msg("Failed to insert new added service into database")
-					}
-
-				} else {
-					log.Fatal().Err(result.Err()).Msg("Failed to insert new added ingress into database")
+				filter := bson.M{"serviceName": ingressRuleServiceName}
+				update := bson.M{
+					"$set": bson.M{
+						"ingressHost":   ingressRuleHostName,
+						"ingressPath":   ingressRulePath,
+						"ingressOnline": true,
+					},
 				}
+
+				after := options.After
+				upsert := false
+				opt := options.FindOneAndUpdateOptions{
+					ReturnDocument: &after,
+					Upsert:         &upsert,
+				}
+
+				result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
+				if result.Err() != nil {
+					if result.Err().Error() == "ErrNoDocuments" {
+
+						ing := model.Service{
+							ServiceName:   ingressRuleServiceName,
+							Category:      "",
+							ServiceOnline: false,
+							IngressHost:   ingressRuleHostName,
+							IngressPath:   ingressRulePath,
+							IngressOnline: true,
+						}
+
+						_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, ing) //TODO Parameterize
+						if err != nil {
+							log.Fatal().Err(err).Msg("Failed to insert new added service into database")
+						}
+
+					} else {
+						log.Fatal().Err(result.Err()).Msg("Failed to insert new added ingress into database")
+					}
+				}
+
+				log.Info().Msgf("OnIngAdd: Added ingress rule for service %v to database", ingressRuleServiceName)
+
+			} else {
+				log.Info().Msgf("OnIngAdd: Did not add ingress rule to database, backend is resource")
 			}
 
-			log.Info().Msgf("Added ingress rule to service %v to the database\n", ingressRuleServiceName)
 		}
 
 	} else {
-		log.Info().Msgf("Did not add ingress %v to the database, no annotation or set on false\n", newIngress.Name)
+		log.Info().Msgf("onIngAdd: Did not add rules of ingress %v to database, no label or set on false", newIngress.Name)
 	}
 }
 
 func onIngUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
 
+	log.Info().Msgf("onIngUpdate: Received ingress to update")
+	log.Info().Msgf("onIngUpdate: Delete outdated Ingress")
 	onIngDelete(ctx, old, mongoClient)
+	log.Info().Msgf("onIngUpdate: Add updated Ingress")
 	onIngAdd(ctx, new, mongoClient)
 
 }
@@ -173,11 +176,11 @@ func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 	deletedIngress := obj.(*networkingv1.Ingress)
 
-	deletedIngressAnnotations := deletedIngress.GetLabels()
-	log.Info().Msgf("onDelete Ingress service %v", deletedIngress.Name)
-	log.Info().Msgf("Services tags  %v", deletedIngressAnnotations)
+	log.Info().Msgf("onIngDelete: Received ingress to delete: %v", deletedIngress.Name)
 
-	if val, ok := deletedIngressAnnotations["showOnClusterPortal"]; ok && val == "true" {
+	deletedIngressLabels := deletedIngress.GetLabels()
+
+	if val, ok := deletedIngressLabels["showOnClusterPortal"]; ok && val == "true" {
 
 		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
@@ -185,48 +188,53 @@ func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 		for _, ingressRule := range deletedIngressRules {
 
-			ingressRuleServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
+			if ingressRule.HTTP.Paths[0].Backend.Resource == nil {
 
-			filter := bson.M{"serviceName": ingressRuleServiceName}
+				ingressRuleServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
 
-			svcFromDatabase := serviceCollection.FindOne(ctx, filter)
+				filter := bson.M{"serviceName": ingressRuleServiceName}
 
-			if svcFromDatabase.Err() != nil {
-				if svcFromDatabase.Err().Error() == "ErrNoDocuments" {
-					log.Info().Msgf("Could not delete service %v from database. Does not exist ", ingressRuleServiceName)
+				svcFromDatabase := serviceCollection.FindOne(ctx, filter)
+
+				if svcFromDatabase.Err() != nil {
+					if svcFromDatabase.Err().Error() == "ErrNoDocuments" {
+						log.Info().Msgf("Could not delete service %v from database. Does not exist ", ingressRuleServiceName)
+					} else {
+						log.Fatal().Err(svcFromDatabase.Err()).Msg("Failed to get service that should be deleted from database")
+					}
 				} else {
-					log.Fatal().Err(svcFromDatabase.Err()).Msg("Failed to get service that should be deleted from database")
-				}
-			} else {
 
-				var svc model.Service
-				err := svcFromDatabase.Decode(&svc)
-				if err != nil {
-					log.Fatal().Err(err).Msg("Failed marshalling service that should be deleted from database")
-				}
-
-				if svc.ServiceOnline {
-
-					update := bson.M{
-						"$set": bson.M{
-							"ingressHost":   "",
-							"ingressPath":   "",
-							"ingressOnline": false,
-						},
+					var svc model.Service
+					err := svcFromDatabase.Decode(&svc)
+					if err != nil {
+						log.Fatal().Err(err).Msg("Failed marshalling service that should be deleted from database")
 					}
 
-					_ = serviceCollection.FindOneAndUpdate(ctx, filter, update)
+					if svc.ServiceOnline {
 
-				} else {
+						update := bson.M{
+							"$set": bson.M{
+								"ingressHost":   "",
+								"ingressPath":   "",
+								"ingressOnline": false,
+							},
+						}
 
-					serviceCollection.FindOneAndDelete(ctx, filter)
+						_ = serviceCollection.FindOneAndUpdate(ctx, filter, update)
 
+					} else {
+
+						serviceCollection.FindOneAndDelete(ctx, filter)
+
+					}
 				}
+			} else {
+				log.Info().Msgf("OnIngDelete: Did not delete ingress rule from database, backend is resource")
 			}
 		}
 
 	} else {
-		log.Info().Msgf("Did not delete ingress %v from database, no annotation or set on false\n", deletedIngress.Name)
+		log.Info().Msgf("onIngDelete: Did not delete ingress %v from database, no label or set on false", deletedIngress.Name)
 	}
 
 }

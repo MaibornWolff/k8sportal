@@ -97,11 +97,11 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	newService := obj.(*corev1.Service)
 
-	newServiceAnnotations := newService.GetLabels()
-	log.Info().Msgf("onAdd received service %v", newService.Name)
-	log.Info().Msgf("Services tags  %v", newServiceAnnotations)
+	log.Info().Msgf("onSvcAdd: Received service to add: %v", newService.Name)
 
-	if val, ok := newServiceAnnotations["showOnClusterPortal"]; ok && val == "true" {
+	newServiceLabels := newService.GetLabels()
+
+	if val, ok := newServiceLabels["showOnClusterPortal"]; ok && val == "true" {
 
 		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
@@ -130,17 +130,17 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 				_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
 				if err != nil {
-					log.Fatal().Err(err).Msg("Failed to insert new added service into mongodb")
+					log.Fatal().Err(err).Msg("Failed to insert new added service into database")
 				}
 
 			} else {
-				log.Fatal().Err(result.Err()).Msg("Failed to insert new added service into mongodb")
+				log.Fatal().Err(result.Err()).Msg("Failed to insert new added service into database")
 			}
 		}
 
-		log.Info().Msgf("Added the service %v to the database\n", newService.Name)
+		log.Info().Msgf("onSvcAdd: Added service %v to database", newService.Name)
 	} else {
-		log.Info().Msgf("Did not add service %v to the database, no annotation or set on false\n", newService.Name)
+		log.Info().Msgf("onSvcAdd: Did not add service %v to database, no label or set on false\n", newService.Name)
 	}
 
 }
@@ -156,11 +156,11 @@ func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 	deletedService := obj.(*corev1.Service)
 
-	deletedServiceAnnotations := deletedService.GetLabels()
-	log.Info().Msgf("onDelete received service %v", deletedService.Name)
-	log.Info().Msgf("Services tags  %v", deletedServiceAnnotations)
+	log.Info().Msgf("onSvcDelete: Received service to delete: %v", deletedService.Name)
 
-	if val, ok := deletedServiceAnnotations["showOnClusterPortal"]; ok && val == "true" {
+	deletedServiceLabels := deletedService.GetLabels()
+
+	if val, ok := deletedServiceLabels["showOnClusterPortal"]; ok && val == "true" {
 
 		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
 
@@ -196,7 +196,7 @@ func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 		}
 
 	} else {
-		log.Info().Msgf("Did not delete service %v from database, no annotation or set on false\n", deletedService.Name)
+		log.Info().Msgf("onSvcDelete: Did not delete service %v from database, no label or set on false", deletedService.Name)
 	}
 
 }
