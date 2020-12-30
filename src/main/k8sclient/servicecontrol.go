@@ -19,17 +19,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var mongodbdatabase = "k8sportal"
-var mongodbcollection = "portal-services"
-
 //InitServices Returns all services with the label showOnCLusterPortal: true
-func InitServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
+func InitServices(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	options := metav1.ListOptions{
 		LabelSelector: "showOnClusterPortal=true",
 	}
-
-	ctx := context.Background()
 
 	svcList, err := kubeClient.CoreV1().Services("").List(ctx, options)
 	if err != nil {
@@ -51,18 +46,18 @@ func InitServices(kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
 				IngressOnline: false,
 			}
 
-			_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
+			_, err := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection).InsertOne(ctx, svc) //TODO Parameterize
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to insert service into mongodb")
 			}
-			log.Info().Msgf("added the service %v to the database\n", svcInfo.Name)
+			log.Info().Msgf("added the service %v to the database", svcInfo.Name)
 		}
 	}
 
 }
 
 //ServiceInform reacts to changed services  TODO Add mongodb client, so changes can be made
-func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
+func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 
@@ -74,13 +69,13 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			onSvcAdd(ctx, obj, mongoClient)
+			onSvcAdd(ctx, obj, mongoClient, mongodbDatabase, mongodbCollection)
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
-			onSvcUpdate(ctx, old, new, mongoClient)
+			onSvcUpdate(ctx, old, new, mongoClient, mongodbDatabase, mongodbCollection)
 		},
 		DeleteFunc: func(obj interface{}) {
-			onSvcDelete(ctx, obj, mongoClient)
+			onSvcDelete(ctx, obj, mongoClient, mongodbDatabase, mongodbCollection)
 		},
 	})
 
@@ -93,7 +88,7 @@ func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 	<-stopper
 }
 
-func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	newService := obj.(*corev1.Service)
 
@@ -103,7 +98,7 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	if val, ok := newServiceLabels["showOnClusterPortal"]; ok && val == "true" {
 
-		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
+		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 
 		filter := bson.M{"serviceName": newService.Name}
 		update := bson.M{"$set": bson.M{"serviceOnline": true}}
@@ -117,7 +112,7 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 		result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
 		if result.Err() != nil {
-			if result.Err().Error() == "ErrNoDocuments" {
+			if result.Err().Error() == "mongo: no documents in result" {
 
 				svc := model.Service{
 					ServiceName:   newService.Name,
@@ -128,7 +123,7 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 					IngressOnline: false,
 				}
 
-				_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, svc) //TODO Parameterize
+				_, err := serviceCollection.InsertOne(ctx, svc) //TODO Parameterize
 				if err != nil {
 					log.Fatal().Err(err).Msg("Failed to insert new added service into database")
 				}
@@ -145,14 +140,14 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 }
 
-func onSvcUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
+func onSvcUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
-	onSvcDelete(ctx, old, mongoClient)
-	onSvcAdd(ctx, new, mongoClient)
+	onSvcDelete(ctx, old, mongoClient, mongodbDatabase, mongodbCollection)
+	onSvcAdd(ctx, new, mongoClient, mongodbDatabase, mongodbCollection)
 
 }
 
-func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	deletedService := obj.(*corev1.Service)
 
@@ -162,14 +157,14 @@ func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 	if val, ok := deletedServiceLabels["showOnClusterPortal"]; ok && val == "true" {
 
-		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
+		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 
 		filter := bson.M{"serviceName": deletedService.Name}
 
 		svcFromDatabase := serviceCollection.FindOne(ctx, filter)
 
 		if svcFromDatabase.Err() != nil {
-			if svcFromDatabase.Err().Error() == "ErrNoDocuments" {
+			if svcFromDatabase.Err().Error() == "mongo: no documents in result" {
 				log.Info().Msgf("Could not delete service %v from database. Does not exist ", deletedService.Name)
 			} else {
 				log.Fatal().Err(svcFromDatabase.Err()).Msg("Failed to get service that should be deleted from database")

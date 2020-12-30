@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service10
+  name: my-service2
   labels: {
-    "showOnClusterPortal" : "false"
+    "showOnClusterPortal" : "true"
   }
 spec:
   selector:

@@ -16,9 +16,6 @@ const (
 	connectionTimeout = 10 * time.Second
 )
 
-var mongodbdatabase = "k8sportal"
-var mongodbcollection = "portal-services"
-
 func Connect(ctx context.Context, mongodbHost string) (*mongo.Client, error) {
 	timedContext, cancelTimedContext := context.WithTimeout(ctx, connectionTimeout)
 	defer cancelTimedContext()
@@ -43,14 +40,11 @@ func Connect(ctx context.Context, mongodbHost string) (*mongo.Client, error) {
 	return client, nil
 }
 
-func GetAllServices(mongoClient *mongo.Client) ([]*model.Service, error) {
+func GetAllServices(ctx context.Context, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) ([]*model.Service, error) {
+
 	var services []*model.Service
 
-	ctx := context.Background() //TODO get context from function call
-
-	db := mongoClient.Database(mongodbdatabase)
-	collection := db.Collection(mongodbcollection)
-	cursor, err := collection.Find(ctx, bson.M{})
+	cursor, err := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection).Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"k8sportal/mongodb"
 	"net/http"
 
@@ -8,25 +9,25 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var mongodbdatabase = "k8sportal"
-var mongodbcollection = "portal-services"
-
 //StartWebserver Gets entries from db and presents them via the HTTP endpoint
-func StartWebserver(mongoClient *mongo.Client) {
+func StartWebserver(ctx context.Context, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	router := gin.New()
 	router.Use(gin.Recovery())
-	router.GET("/services", func(ctx *gin.Context) {
-		handleGetServices(ctx, mongoClient)
+	router.GET("/services", func(ginCtx *gin.Context) {
+		handleGetServices(ginCtx, ctx, mongoClient, mongodbDatabase, mongodbCollection)
 	})
 	router.Run(":80")
 }
 
-func handleGetServices(c *gin.Context, mongoClient *mongo.Client) {
-	var loadedServices, err = mongodb.GetAllServices(mongoClient)
+func handleGetServices(ginCtx *gin.Context, ctx context.Context, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
+	var loadedServices, err = mongodb.GetAllServices(ctx, mongoClient, mongodbDatabase, mongodbCollection)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"msg": err})
+
+		ginCtx.JSON(http.StatusNotFound, gin.H{"msg": err})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"services": loadedServices})
+
+	ginCtx.JSON(http.StatusOK, loadedServices)
+
 }

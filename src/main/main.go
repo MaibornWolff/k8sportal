@@ -16,9 +16,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var mongodbdatabase = "k8sportal"
-var mongodbcollection = "portal-services"
-
 func main() {
 
 	//initialize config from environment
@@ -52,28 +49,28 @@ func main() {
 	//create new mongodb client
 	ctx := context.Background()
 
-	mongoClient, err := mongodb.Connect(ctx, "mongodb://root:dummypw@mongodb.default.svc.cluster.local:27017/?authSource=admin") //TODO Change host/pw to config
+	mongoClient, err := mongodb.Connect(ctx, config.Mongodb.Host) //TODO Change host/pw to config
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to MongoDB")
 	}
 	defer mongoClient.Disconnect(ctx)
 
-	err = mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).Drop(ctx) //TODO Parameterize
+	err = mongoClient.Database(config.Mongodb.Database).Collection(config.Mongodb.Collection).Drop(ctx) //TODO Parameterize
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to drop up k8sportal collection in mongodb")
 	}
-	err = mongoClient.Database(mongodbdatabase).CreateCollection(ctx, mongodbcollection)
+	err = mongoClient.Database(config.Mongodb.Database).CreateCollection(ctx, config.Mongodb.Collection)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create k8sportal collection in mongodb")
 	}
 
-	k8sclient.InitServices(kubeClient, mongoClient) //TODO parameterize mongodb
+	k8sclient.InitServices(ctx, kubeClient, mongoClient, config.Mongodb.Database, config.Mongodb.Collection) //TODO parameterize mongodb
 	//k8sclient.InitIngress(kubeClient, mongoClient)  //TODO parameterize mongodb
 
 	//start the informer factory, to react to changes of services in the cluster
-	go k8sclient.ServiceInform(ctx, kubeClient, mongoClient)
-	go k8sclient.IngressInform(ctx, kubeClient, mongoClient)
+	go k8sclient.ServiceInform(ctx, kubeClient, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
+	go k8sclient.IngressInform(ctx, kubeClient, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
 
-	web.StartWebserver(mongoClient)
+	web.StartWebserver(ctx, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
 
 }

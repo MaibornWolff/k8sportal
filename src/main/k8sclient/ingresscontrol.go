@@ -58,7 +58,7 @@ import (
 }*/
 
 //IngressInform reacts to changed services  TODO Add mongodb client, so changes can be made
-func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client) {
+func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 	informer := factory.Networking().V1().Ingresses().Informer()
@@ -69,13 +69,13 @@ func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			onIngAdd(ctx, obj, mongoClient)
+			onIngAdd(ctx, obj, mongoClient, mongodbDatabase, mongodbCollection)
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
-			onIngUpdate(ctx, old, new, mongoClient)
+			onIngUpdate(ctx, old, new, mongoClient, mongodbDatabase, mongodbCollection)
 		},
 		DeleteFunc: func(obj interface{}) {
-			onIngDelete(ctx, obj, mongoClient)
+			onIngDelete(ctx, obj, mongoClient, mongodbDatabase, mongodbCollection)
 		},
 	})
 
@@ -88,7 +88,7 @@ func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, mongoCl
 	<-stopper
 }
 
-func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	newIngress := obj.(*networkingv1.Ingress)
 
@@ -98,7 +98,7 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 	if val, ok := newIngressLabels["showOnClusterPortal"]; ok && val == "true" {
 
-		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
+		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 
 		newIngressRules := newIngress.Spec.Rules
 
@@ -128,7 +128,7 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 
 				result := serviceCollection.FindOneAndUpdate(ctx, filter, update, &opt)
 				if result.Err() != nil {
-					if result.Err().Error() == "ErrNoDocuments" {
+					if result.Err().Error() == "mongo: no documents in result" {
 
 						ing := model.Service{
 							ServiceName:   ingressRuleServiceName,
@@ -139,7 +139,7 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 							IngressOnline: true,
 						}
 
-						_, err := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection).InsertOne(ctx, ing) //TODO Parameterize
+						_, err := serviceCollection.InsertOne(ctx, ing) //TODO Parameterize
 						if err != nil {
 							log.Fatal().Err(err).Msg("Failed to insert new added service into database")
 						}
@@ -162,17 +162,17 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
 	}
 }
 
-func onIngUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client) {
+func onIngUpdate(ctx context.Context, old interface{}, new interface{}, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	log.Info().Msgf("onIngUpdate: Received ingress to update")
 	log.Info().Msgf("onIngUpdate: Delete outdated Ingress")
-	onIngDelete(ctx, old, mongoClient)
+	onIngDelete(ctx, old, mongoClient, mongodbDatabase, mongodbCollection)
 	log.Info().Msgf("onIngUpdate: Add updated Ingress")
-	onIngAdd(ctx, new, mongoClient)
+	onIngAdd(ctx, new, mongoClient, mongodbDatabase, mongodbCollection)
 
 }
 
-func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client) {
+func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	deletedIngress := obj.(*networkingv1.Ingress)
 
@@ -182,7 +182,7 @@ func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 	if val, ok := deletedIngressLabels["showOnClusterPortal"]; ok && val == "true" {
 
-		serviceCollection := mongoClient.Database(mongodbdatabase).Collection(mongodbcollection)
+		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 
 		deletedIngressRules := deletedIngress.Spec.Rules
 
@@ -197,7 +197,7 @@ func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 				svcFromDatabase := serviceCollection.FindOne(ctx, filter)
 
 				if svcFromDatabase.Err() != nil {
-					if svcFromDatabase.Err().Error() == "ErrNoDocuments" {
+					if svcFromDatabase.Err().Error() == "mongo: no documents in result" {
 						log.Info().Msgf("Could not delete service %v from database. Does not exist ", ingressRuleServiceName)
 					} else {
 						log.Fatal().Err(svcFromDatabase.Err()).Msg("Failed to get service that should be deleted from database")
