@@ -18,6 +18,9 @@ import (
 
 func main() {
 
+	//TODO Alle Ingress Rules und alle Pathes zurück geben
+	//Kategorie des Services ebenfalls über Label
+
 	//initialize config from environment
 	err := envconfig.Init(&config)
 	if err != nil {

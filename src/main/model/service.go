@@ -11,11 +11,11 @@ type Service struct {
 }
 
 //IsOnline checks if ingress and service are available
-func IsOnline(service Service) bool {
+func (service *Service) IsOnline() bool {
 	return (service.ServiceOnline && service.IngressOnline)
 }
 
 //GetFqdn returns the concatenated Host and Path to access the service via the ingress
-func GetFqdn(service Service) string {
+func (service *Service) GetFqdn(empty string) string {
 	return service.IngressHost + service.IngressPath
 }

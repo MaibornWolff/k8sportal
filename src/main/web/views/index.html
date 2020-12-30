@@ -1,0 +1,21 @@
+{{define "head"}}
+    <style>
+        .name{ color: blue;}
+        hr{ border: 1px #ccc dashed;}
+    </style>
+{{end}}
+
+
+{{define "content"}}
+    <h1 class="name">K8S Portal</h1>
+    <hr>
+
+    {{range .services}}
+        <div class="service">
+            <h2>{{.ServiceName}}</h2>
+            <p><a href="{{.FQDN "empty"}}">To the service</a> </p>
+        </div>
+    {{end}}
+
+
+{{end}}
