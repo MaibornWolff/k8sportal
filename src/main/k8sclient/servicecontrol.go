@@ -39,11 +39,8 @@ func InitServices(ctx context.Context, kubeClient kubernetes.Interface, mongoCli
 
 			svc := model.Service{
 				ServiceName:   svcInfo.Name,
-				Category:      "",
+				Category:      svcInfo.GetLabels()["clusterPortalCategory"],
 				ServiceOnline: true,
-				IngressHost:   "",
-				IngressPath:   "",
-				IngressOnline: false,
 			}
 
 			_, err := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection).InsertOne(ctx, svc) //TODO Parameterize
@@ -101,8 +98,11 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 
 		filter := bson.M{"serviceName": newService.Name}
-		update := bson.M{"$set": bson.M{"serviceOnline": true}}
-
+		update := bson.M{
+			"$set": bson.M{
+				"serviceOnline": true,
+				"category":      newServiceLabels["clusterPortalCategory"],
+			}}
 		after := options.After
 		upsert := false
 		opt := options.FindOneAndUpdateOptions{
@@ -116,11 +116,8 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 
 				svc := model.Service{
 					ServiceName:   newService.Name,
-					Category:      "",
+					Category:      newServiceLabels["clusterPortalCategory"],
 					ServiceOnline: true,
-					IngressHost:   "",
-					IngressPath:   "",
-					IngressOnline: false,
 				}
 
 				_, err := serviceCollection.InsertOne(ctx, svc) //TODO Parameterize

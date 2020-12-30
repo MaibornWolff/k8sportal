@@ -25,7 +25,7 @@ func StartWebserver(ctx context.Context, mongoClient *mongo.Client, mongodbDatab
 		services := handleGetOnlineServices(ginCtx, ctx, mongoClient, mongodbDatabase, mongodbCollection)
 
 		ginCtx.HTML(http.StatusOK, "index", gin.H{
-			"title":    "K8S Porta",
+			"title":    "K8S Portal",
 			"services": services,
 		})
 	})

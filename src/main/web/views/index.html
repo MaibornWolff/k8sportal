@@ -13,8 +13,10 @@
     {{range .services}}
         <div class="service">
             <h2>{{.ServiceName}}</h2>
-            <p><a href="{{.FQDN "empty"}}">To the service</a> </p>
+            <p>Category: {{.Category}}</p>
+            <p><a href="{{.Fqdn}}">Link the service</a> </p>
         </div>
+        <hr>
     {{end}}
 
 

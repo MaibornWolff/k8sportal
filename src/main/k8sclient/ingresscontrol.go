@@ -76,10 +76,9 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 					"$set": bson.M{
 						"ingressHost":   ingressRuleHostName,
 						"ingressPath":   ingressRulePath,
+						"fqdn":          (ingressRuleHostName + ingressRulePath),
 						"ingressOnline": true,
-					},
-				}
-
+					}}
 				after := options.After
 				upsert := false
 				opt := options.FindOneAndUpdateOptions{
@@ -97,6 +96,7 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 							ServiceOnline: false,
 							IngressHost:   ingressRuleHostName,
 							IngressPath:   ingressRulePath,
+							Fqdn:          (ingressRuleHostName + ingressRulePath),
 							IngressOnline: true,
 						}
 
@@ -177,16 +177,14 @@ func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 							"$set": bson.M{
 								"ingressHost":   "",
 								"ingressPath":   "",
+								"fqdn":          "",
 								"ingressOnline": false,
-							},
-						}
+							}}
 
 						_ = serviceCollection.FindOneAndUpdate(ctx, filter, update)
 
 					} else {
-
 						serviceCollection.FindOneAndDelete(ctx, filter)
-
 					}
 				}
 			} else {

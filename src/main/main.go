@@ -18,8 +18,9 @@ import (
 
 func main() {
 
-	//TODO Alle Ingress Rules und alle Pathes zurück geben
-	//Kategorie des Services ebenfalls über Label
+	//TODO Alle Ingress Rules und alle Pathes als FQDN zurück geben
+	//TODO Kategorie des Services ebenfalls über Label
+	//TODO Weboberfläche anpassen
 
 	//initialize config from environment
 	err := envconfig.Init(&config)

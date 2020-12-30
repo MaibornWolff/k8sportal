@@ -7,6 +7,7 @@ type Service struct {
 	ServiceOnline bool   `bson:"serviceOnline" json:"serviceOnline"`
 	IngressHost   string `bson:"ingressHost" json:"ingressHost"`
 	IngressPath   string `bson:"ingressPath" json:"ingressPath"`
+	Fqdn          string `bson:"fqdn" json:"fqdn"`
 	IngressOnline bool   `bson:"ingressOnline" json:"ingressOnline"`
 }
 
