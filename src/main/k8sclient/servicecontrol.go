@@ -19,11 +19,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-//InitServices Returns all services with the label showOnCLusterPortal: true
+//InitServices Returns all services with the label clusterPortalShow: true
 func InitServices(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	options := metav1.ListOptions{
-		LabelSelector: "showOnClusterPortal=true",
+		LabelSelector: "clusterPortalShow=true",
 	}
 
 	svcList, err := kubeClient.CoreV1().Services("").List(ctx, options)
@@ -93,7 +93,7 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 
 	newServiceLabels := newService.GetLabels()
 
-	if val, ok := newServiceLabels["showOnClusterPortal"]; ok && val == "true" {
+	if val, ok := newServiceLabels["clusterPortalShow"]; ok && val == "true" {
 
 		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 
@@ -152,7 +152,7 @@ func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 	deletedServiceLabels := deletedService.GetLabels()
 
-	if val, ok := deletedServiceLabels["showOnClusterPortal"]; ok && val == "true" {
+	if val, ok := deletedServiceLabels["clusterPortalShow"]; ok && val == "true" {
 
 		serviceCollection := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection)
 

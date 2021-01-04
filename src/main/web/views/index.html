@@ -2,7 +2,14 @@
     <style>
         .name{ color: blue;}
         hr{ border: 1px #ccc dashed;}
+        table, td, th {border: 1px solid black;}
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            }
+        
     </style>
+
 {{end}}
 
 
@@ -10,14 +17,26 @@
     <h1 class="name">K8S Portal</h1>
     <hr>
 
-    {{range .services}}
-        <div class="service">
-            <h2>{{.ServiceName}}</h2>
-            <p>Category: {{.Category}}</p>
-            <p><a href="{{.Fqdn}}">Link the service</a> </p>
-        </div>
-        <hr>
-    {{end}}
+    <table class>
+        <tr>
+            <th>Service Name</th>
+            <th>Category</th>
+            <th>Link to Service</th>
+        </tr>
+
+        {{range .services}}
+            <tr>
+                <td>{{.ServiceName}}</td>
+                <td>{{.Category}}</td>
+                <td>           
+                    {{range .IngressRules}}
+                    <a href="http://{{.IngressHost}}{{.IngressPath}}">{{.IngressHost}}{{.IngressPath}}</a> <br>
+                    {{end}}
+                </td>
+            </tr>
+        {{end}}
+
+    </table>
 
 
 {{end}}
