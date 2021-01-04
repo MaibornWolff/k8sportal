@@ -7,5 +7,5 @@ var config struct {
 		Collection string
 	}
 
-	LogLevel string `envconfig:"default=info"`
+	LogLevel string `envconfig:"default=warn"`
 }
