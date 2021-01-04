@@ -18,11 +18,6 @@ import (
 
 func main() {
 
-	//TODO Alle Ingress Rules und alle Pathes als FQDN zurück geben
-	//TODO Kategorie des Services ebenfalls über Label
-	//TODO Weboberfläche anpassen
-
-	//initialize config from environment
 	err := envconfig.Init(&config)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to read config")
@@ -37,7 +32,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to parse log level")
 	}
 
-	//create kubernetes client
 	kubeconfig := os.Getenv("KUBECONFIG")
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -53,13 +47,13 @@ func main() {
 	//create new mongodb client
 	ctx := context.Background()
 
-	mongoClient, err := mongodb.Connect(ctx, config.Mongodb.Host) //TODO Change host/pw to config
+	mongoClient, err := mongodb.Connect(ctx, config.Mongodb.Host)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to MongoDB")
 	}
 	defer mongoClient.Disconnect(ctx)
 
-	err = mongoClient.Database(config.Mongodb.Database).Collection(config.Mongodb.Collection).Drop(ctx) //TODO Parameterize
+	err = mongoClient.Database(config.Mongodb.Database).Collection(config.Mongodb.Collection).Drop(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to drop up k8sportal collection in mongodb")
 	}
@@ -68,8 +62,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create k8sportal collection in mongodb")
 	}
 
-	k8sclient.InitServices(ctx, kubeClient, mongoClient, config.Mongodb.Database, config.Mongodb.Collection) //TODO parameterize mongodb
-	//k8sclient.InitIngress(kubeClient, mongoClient)  //TODO parameterize mongodb
+	k8sclient.InitServices(ctx, kubeClient, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
 
 	//start the informer factory, to react to changes of services in the cluster
 	go k8sclient.ServiceInform(ctx, kubeClient, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
