@@ -1,10 +1,11 @@
 # k8sportal
-A web portal to running services in you k8s cluster
+A web portal to running services in your k8s cluster
 
 ## Cluster Configuration
 
-1. Add `clusterPortalShow : true` to the labels of the ingresses and services you want to show up on the cluster portal
-2. (optional) Add `clusterPortalCategory : <insert the Category here>` to to the labels of a service. 
+1. Add `clusterPortalShow : true` to the labels of the services you want to show up on the cluster portal
+2. Add `clusterPortalShow : true` to the labels of the ingresses to the services you want to show up on the cluster portal
+3. (optional) Add `clusterPortalCategory : <insert the Category here>` to to the labels of a service. 
 
 ## Installation
 
