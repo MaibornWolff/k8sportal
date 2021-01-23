@@ -2,7 +2,7 @@
 A web portal that shows a dynamic link list to installed and labeled services in your Kubernetes cluster
 
 
-[![Portal](resources/k8sportal.png)](resources/k8sportal.png)
+[![Portal](resources/k8sportal_small.png)](resources/k8sportal_small.png)
 
 ## Cluster Configuration
 
