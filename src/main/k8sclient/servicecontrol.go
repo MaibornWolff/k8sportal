@@ -40,7 +40,7 @@ func InitServices(ctx context.Context, kubeClient kubernetes.Interface, mongoCli
 			svc := model.Service{
 				ServiceName:   svcInfo.Name,
 				Category:      svcInfo.GetLabels()["clusterPortalCategory"],
-				ServiceOnline: true,
+				ServiceExists: true,
 			}
 
 			_, err := mongoClient.Database(mongodbDatabase).Collection(mongodbCollection).InsertOne(ctx, svc)
@@ -100,7 +100,7 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 		filter := bson.M{"serviceName": newService.Name}
 		update := bson.M{
 			"$set": bson.M{
-				"serviceOnline": true,
+				"serviceExists": true,
 				"category":      newServiceLabels["clusterPortalCategory"],
 			}}
 		after := options.After
@@ -117,7 +117,7 @@ func onSvcAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 				svc := model.Service{
 					ServiceName:   newService.Name,
 					Category:      newServiceLabels["clusterPortalCategory"],
-					ServiceOnline: true,
+					ServiceExists: true,
 				}
 
 				_, err := serviceCollection.InsertOne(ctx, svc) //TODO Parameterize
@@ -177,9 +177,9 @@ func onSvcDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 				log.Fatal().Err(err).Msg("Failed marshalling service that should be deleted from database")
 			}
 
-			if svc.IngressOnline {
+			if svc.IngressExists {
 
-				update := bson.M{"$set": bson.M{"serviceOnline": false}}
+				update := bson.M{"$set": bson.M{"serviceExists": false}}
 
 				_ = serviceCollection.FindOneAndUpdate(ctx, filter, update)
 

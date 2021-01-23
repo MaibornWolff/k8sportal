@@ -4,9 +4,9 @@ package model
 type Service struct {
 	ServiceName   string        `bson:"serviceName" json:"serviceName"`
 	Category      string        `bson:"category" json:"category"`
-	ServiceOnline bool          `bson:"serviceOnline" json:"serviceOnline"`
+	ServiceExists bool          `bson:"serviceExists" json:"serviceExists"`
 	IngressRules  []IngressRule `bson:"ingressRules" json:"ingressRules"`
-	IngressOnline bool          `bson:"ingressOnline" json:"ingressOnline"`
+	IngressExists bool          `bson:"ingressExists" json:"ingressExists"`
 }
 
 //IngressRule model
@@ -15,7 +15,7 @@ type IngressRule struct {
 	IngressPath string `bson:"ingressPath" json:"ingressPath"`
 }
 
-//IsOnline checks if ingress and service are available
-func (service *Service) IsOnline() bool {
-	return (service.ServiceOnline && service.IngressOnline)
+//Exists checks if ingress and service are available
+func (service *Service) Exists() bool {
+	return (service.ServiceExists && service.IngressExists)
 }

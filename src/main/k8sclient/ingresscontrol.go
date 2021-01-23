@@ -86,8 +86,8 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 						newService := model.Service{
 							ServiceName:   addedIngressRuleServiceName,
 							IngressRules:  []model.IngressRule{addedIngressRuleAsStruct},
-							ServiceOnline: false,
-							IngressOnline: true,
+							ServiceExists: false,
+							IngressExists: true,
 						}
 
 						_, err := serviceCollection.InsertOne(ctx, newService)
@@ -114,7 +114,7 @@ func onIngAdd(ctx context.Context, obj interface{}, mongoClient *mongo.Client, m
 					update := bson.M{
 						"$set": bson.M{
 							"ingressRules":  append(decodedServiceFromDatabase.IngressRules, addedIngressRuleAsStruct),
-							"ingressOnline": true,
+							"ingressExists": true,
 						}}
 					after := options.After
 					upsert := false
@@ -202,12 +202,12 @@ func onIngDelete(ctx context.Context, obj interface{}, mongoClient *mongo.Client
 
 					if len(newIngressRulesForService) == 0 {
 
-						if decodedServiceFromDatabase.ServiceOnline {
+						if decodedServiceFromDatabase.ServiceExists {
 
 							update := bson.M{
 								"$set": bson.M{
 									"ingressRules":  newIngressRulesForService,
-									"ingressOnline": false,
+									"ingressExists": false,
 								}}
 
 							_ = serviceCollection.FindOneAndUpdate(ctx, filter, update)

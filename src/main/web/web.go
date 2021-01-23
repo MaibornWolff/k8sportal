@@ -22,7 +22,7 @@ func StartWebserver(ctx context.Context, mongoClient *mongo.Client, mongodbDatab
 
 	router.GET("/services", func(ginCtx *gin.Context) {
 
-		services := handleGetOnlineServices(ginCtx, ctx, mongoClient, mongodbDatabase, mongodbCollection)
+		services := handleGetExistingServices(ginCtx, ctx, mongoClient, mongodbDatabase, mongodbCollection)
 
 		ginCtx.HTML(http.StatusOK, "index", gin.H{
 			"title":    "K8S Portal",
@@ -49,20 +49,20 @@ func handleGetServices(ginCtx *gin.Context, ctx context.Context, mongoClient *mo
 
 }
 
-func handleGetOnlineServices(ginCtx *gin.Context, ctx context.Context, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) []*model.Service {
+func handleGetExistingServices(ginCtx *gin.Context, ctx context.Context, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) []*model.Service {
 	var loadedServices, err = mongodb.GetAllServices(ctx, mongoClient, mongodbDatabase, mongodbCollection)
 	if err != nil {
 		ginCtx.JSON(http.StatusNotFound, gin.H{"msg": err})
 	}
 
-	var onlineServices []*model.Service
+	var existingServices []*model.Service
 
 	for _, service := range loadedServices {
-		if service.IsOnline() {
-			onlineServices = append(onlineServices, service)
+		if service.Exists() {
+			existingServices = append(existingServices, service)
 		}
 	}
 
-	return onlineServices
+	return existingServices
 
 }
