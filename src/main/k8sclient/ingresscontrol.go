@@ -19,9 +19,8 @@ import (
 )
 
 //IngressInform reacts to changed services
-func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
+func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, factory informers.SharedInformerFactory, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
-	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 	informer := factory.Networking().V1().Ingresses().Informer()
 
 	stopper := make(chan struct{})
