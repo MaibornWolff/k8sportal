@@ -33,6 +33,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to parse log level")
 	}
 
+	//create kubernetes client
 	kubeconfig := os.Getenv("KUBECONFIG")
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -65,9 +66,9 @@ func main() {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 
-	//start the informer factory, to react to changes of services in the cluster
-	go k8sclient.ServiceInform(ctx, kubeClient, factory, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
-	go k8sclient.IngressInform(ctx, kubeClient, factory, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
+	//start the informer to react to changes of services in the cluster
+	go k8sclient.ServiceInform(ctx, factory, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
+	go k8sclient.IngressInform(ctx, factory, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
 
 	web.StartWebserver(ctx, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
 

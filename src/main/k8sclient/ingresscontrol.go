@@ -14,12 +14,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
 //IngressInform reacts to changed services
-func IngressInform(ctx context.Context, kubeClient kubernetes.Interface, factory informers.SharedInformerFactory, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
+func IngressInform(ctx context.Context, factory informers.SharedInformerFactory, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	informer := factory.Networking().V1().Ingresses().Informer()
 

@@ -14,12 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
 //ServiceInform reacts to changed services
-func ServiceInform(ctx context.Context, kubeClient kubernetes.Interface, factory informers.SharedInformerFactory, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
+func ServiceInform(ctx context.Context, factory informers.SharedInformerFactory, mongoClient *mongo.Client, mongodbDatabase string, mongodbCollection string) {
 
 	informer := factory.Core().V1().Services().Informer()
 
