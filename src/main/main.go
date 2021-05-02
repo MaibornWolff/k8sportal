@@ -1,9 +1,7 @@
 package main
 
 import (
-	"context"
 	"k8sportal/k8sclient"
-	"k8sportal/mongodb"
 	"k8sportal/web"
 	"os"
 	"strings"
@@ -46,30 +44,12 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to build kubeClient")
 	}
 
-	//create new mongodb client
-	ctx := context.Background()
-
-	mongoClient, err := mongodb.Connect(ctx, config.Mongodb.Host)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to MongoDB")
-	}
-	defer mongoClient.Disconnect(ctx)
-
-	err = mongoClient.Database(config.Mongodb.Database).Collection(config.Mongodb.Collection).Drop(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to drop up k8sportal collection in mongodb")
-	}
-	err = mongoClient.Database(config.Mongodb.Database).CreateCollection(ctx, config.Mongodb.Collection)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create k8sportal collection in mongodb")
-	}
-
 	factory := informers.NewSharedInformerFactory(kubeClient, 0)
 
 	//start the informer to react to changes of services in the cluster
-	go k8sclient.ServiceInform(ctx, factory, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
-	go k8sclient.IngressInform(ctx, factory, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
+	go k8sclient.ServiceInform(factory)
+	go k8sclient.IngressInform(factory)
 
-	web.StartWebserver(ctx, mongoClient, config.Mongodb.Database, config.Mongodb.Collection)
+	web.StartWebserver()
 
 }

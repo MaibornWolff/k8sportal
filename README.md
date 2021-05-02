@@ -8,8 +8,8 @@ A web portal that shows a dynamic link list to installed and labeled services in
 
 In order to make services show up on the portal website you have to edit your services and the corresponding ingresses. Therefore follow step 1 and 2. 
 
-1. Add `clusterPortalShow : true` to the labels of the service you want to show up on the cluster portal
-2. Add `clusterPortalShow : true` to the labels of the ingress that point to the service from step 1
+1. Add `clusterPortalShow: "true"` to the labels of the service you want to show up on the cluster portal
+2. Add `clusterPortalShow: "true"` to the labels of the ingress that point to the service from step 1
 3. (optional) Add `clusterPortalCategory : <insert the Category here>` to to the labels of a service.
 
 ## Installation

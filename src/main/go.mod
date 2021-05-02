@@ -12,6 +12,5 @@ require (
 	github.com/foolin/goview v0.3.0
 	github.com/rs/zerolog v1.20.0
 	github.com/vrischmann/envconfig v1.3.0
-	go.mongodb.org/mongo-driver v1.4.4
 	k8s.io/apimachinery v0.19.4
 )
