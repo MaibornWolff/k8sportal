@@ -1,15 +1,17 @@
 <template>
-  <hello-world />
+  <div class="home">
+    <GridList />
+  </div>
 </template>
 
 <script>
-import HelloWorld from "../components/HelloWorld";
+import GridList from "../components/GridList.vue";
 
 export default {
   name: "Home",
 
   components: {
-    HelloWorld,
+    GridList,
   },
 };
 </script>

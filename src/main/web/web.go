@@ -9,6 +9,7 @@ import (
 
 	"github.com/foolin/goview/supports/ginview"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	v1 "k8s.io/api/core/v1"
@@ -18,6 +19,7 @@ import (
 func StartWebserver() {
 
 	router := gin.New()
+	router.Use(cors.Default())
 	router.Use(gin.Recovery())
 
 	router.HTMLRender = ginview.Default()

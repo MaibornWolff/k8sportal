@@ -1,39 +1,23 @@
 <template>
   <v-app>
-    <v-app-bar app color="primary" dark>
+    <v-app-bar app color="light-grey" prominent>
       <div class="d-flex align-center">
         <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
+          alt="MaibornWolff Logo"
+          src="./assets/maibornwolff.svg"
           transition="scale-transition"
-          width="40"
-        />
-
-        <v-img
-          alt="Vuetify Name"
-          class="shrink mt-1 hidden-sm-and-down"
+          max-width="150"
+          class="ma-auto mx-4"
           contain
-          min-width="100"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
-          width="100"
         />
       </div>
-
-      <v-spacer></v-spacer>
-
-      <v-btn
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-        text
-      >
-        <span class="mr-2">Latest Release</span>
-        <v-icon>mdi-open-in-new</v-icon>
-      </v-btn>
+      <v-spacer />
+      <v-toolbar-title class="ma-auto mx-4 text-h4 text-right">
+        Cluster Portal
+      </v-toolbar-title>
     </v-app-bar>
 
-    <v-main>
+    <v-main class="blue-grey lighten-4">
       <router-view />
     </v-main>
   </v-app>
