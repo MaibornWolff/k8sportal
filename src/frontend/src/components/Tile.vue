@@ -7,6 +7,11 @@
       <v-card-title class="justify-center">
         <div>{{ data.metadata.name }}</div>
       </v-card-title>
+      <!-- <v-card-text>
+        <v-chip v-if="data.metadata.labels.chip" x-small class="justify-center">
+          {{ data.metadata.labels.chip }}</v-chip
+        >
+      </v-card-text> -->
       <v-divider></v-divider>
       <v-card-text class="text--primary">
         <div class="mb-4">

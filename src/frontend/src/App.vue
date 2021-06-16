@@ -1,16 +1,15 @@
 <template>
   <v-app>
-    <v-app-bar app color="light-grey" prominent>
-      <div class="d-flex align-center">
-        <v-img
-          alt="MaibornWolff Logo"
-          src="./assets/maibornwolff.svg"
-          transition="scale-transition"
-          max-width="150"
-          class="ma-auto mx-4"
-          contain
-        />
-      </div>
+    <v-app-bar app color="light-grey" prominent hide-on-scroll>
+      <!-- <div class="d-flex align-center"></div> -->
+      <v-img
+        v-bind:src="require('./assets/' + customLogo)"
+        transition="scale-transition"
+        class="ma-auto"
+        max-height="90"
+        max-width="90"
+        contain
+      />
       <v-spacer />
       <v-toolbar-title class="ma-auto mx-4 text-h4 text-right">
         Cluster Portal
@@ -26,9 +25,12 @@
 <script>
 export default {
   name: "App",
-
   data: () => ({
-    //
+    customTitle: process.env.VUE_APP_CUSTOM.TITLE,
+    customLogo: process.env.VUE_APP_CUSTOM.LOGO,
   }),
+  created() {
+    document.title = this.customTitle;
+  },
 };
 </script>

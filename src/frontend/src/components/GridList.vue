@@ -7,6 +7,15 @@
             <v-col md="4 text-overline mx-3">
               <h1>Services</h1>
             </v-col>
+            <v-spacer></v-spacer>
+            <!-- <v-col md="4 text-h6 mx-3">
+              <span>Filter: </span>
+              <span v-for="(tile, key) in tiles" :key="key">
+                <v-chip v-if="tile.metadata.labels.chip">
+                  {{ tile.metadata.labels.chip }}</v-chip
+                >
+              </span>
+            </v-col> -->
           </v-row>
           <v-layout row wrap>
             <v-flex v-for="(tile, key) in tiles" :key="key" xs4>
@@ -39,20 +48,22 @@ export default {
     };
   },
   methods: {
+    // imports all image path in assets/ folder -> push in images
     importAll(r) {
       r.keys().forEach((key) =>
         this.images.push({ pathLong: r(key), pathShort: key })
       );
     },
+    // get short name of all image paths -> push in names
     getNames() {
       const re = /(?<=.\/)(.*?)(?=.svg)/g;
       this.importAll(require.context("../assets/", true, /\.svg$/));
       this.images.map((element) =>
         this.names.push(element.pathShort.match(re)[0])
       );
-
-      console.log(this.names);
     },
+    // for each tile and for each name -> if match -> insert new image attribute in tile object with image path of matched image
+    // and pass via props
     getImgFromEnv() {
       const img = require.context("../assets/", false, /\.svg$/);
       this.tiles.map((tile) => {
