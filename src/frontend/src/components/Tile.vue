@@ -5,7 +5,7 @@
         <v-img contain max-height="100px" :src="data.image"></v-img>
       </v-flex>
       <v-card-title class="justify-center">
-        <div>{{ data.serviceName }}</div>
+        <div>{{ data.metadata.name }}</div>
       </v-card-title>
       <!-- <v-card-text>
         <v-chip v-if="data.metadata.labels.chip" x-small class="justify-center">
@@ -15,9 +15,7 @@
       <v-divider></v-divider>
       <v-card-text class="text--primary">
         <div class="mb-4" v-for="(data, key) in data.ingressRules" :key="key">
-          <!-- {{ data.metadata.selfLink }} -->
-          <!-- {{ data.ingressRules.map((el) => el.ingressPath) }} -->
-          {{ data.ingressPath }}
+          {{ data.metadata.selfLink }}
         </div>
       </v-card-text>
       <v-spacer></v-spacer>
