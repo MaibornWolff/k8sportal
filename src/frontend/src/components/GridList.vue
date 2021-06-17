@@ -55,7 +55,7 @@ export default {
       );
     },
     // get short name of all image paths -> push in names
-    getNames() {
+    getLogoNames() {
       const re = /(?<=.\/)(.*?)(?=.svg)/g;
       this.importAll(require.context("../assets/", true, /\.svg$/));
       this.images.map((element) =>
@@ -64,7 +64,7 @@ export default {
     },
     // for each tile and for each name -> if match -> insert new image attribute in tile object with image path of matched image
     // and pass via props
-    getImgFromEnv() {
+    getImages() {
       const img = require.context("../assets/", false, /\.svg$/);
       this.tiles.map((tile) => {
         this.names.forEach((name) => {
@@ -87,8 +87,8 @@ export default {
       .then((res) => {
         this.tiles = res.data;
 
-        this.getNames();
-        this.getImgFromEnv();
+        this.getLogoNames();
+        this.getImages();
       })
       .catch((err) => console.log(err));
   },
