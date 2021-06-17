@@ -12,7 +12,7 @@
       />
       <v-spacer />
       <v-toolbar-title class="ma-auto mx-4 text-h4 text-right">
-        Cluster Portal
+        {{ customTitle }}
       </v-toolbar-title>
     </v-app-bar>
 

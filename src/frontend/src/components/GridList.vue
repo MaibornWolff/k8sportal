@@ -68,13 +68,15 @@ export default {
       const img = require.context("../assets/", false, /\.svg$/);
       this.tiles.map((tile) => {
         this.names.forEach((name) => {
-          if (!tile.metadata.name.includes(name)) {
+          // if (!tile.metadata.name.includes(name)) {
+          if (!tile.serviceName.includes(name)) {
             tile["image"] = img("./" + "default" + ".svg");
           }
         });
 
         this.names.forEach((name) => {
-          if (tile.metadata.name.includes(name)) {
+          // if (tile.metadata.name.includes(name)) {
+          if (tile.serviceName.includes(name)) {
             tile["image"] = img("./" + name + ".svg");
           }
         });
@@ -83,7 +85,8 @@ export default {
   },
   mounted() {
     axios
-      .get("http://localhost:8080/api/services")
+      // .get("http://localhost:8080/api/services")
+      .get("http://localhost:8080/servicesapi")
       .then((res) => {
         this.tiles = res.data;
 
