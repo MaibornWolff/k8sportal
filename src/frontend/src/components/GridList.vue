@@ -8,14 +8,6 @@
               <h1>Services</h1>
             </v-col>
             <v-spacer></v-spacer>
-            <!-- <v-col md="4 text-h6 mx-3">
-              <span>Filter: </span>
-              <span v-for="(tile, key) in tiles" :key="key">
-                <v-chip v-if="tile.metadata.labels.chip">
-                  {{ tile.metadata.labels.chip }}</v-chip
-                >
-              </span>
-            </v-col> -->
           </v-row>
           <v-layout row wrap>
             <v-flex v-for="(tile, key) in tiles" :key="key" xs4>

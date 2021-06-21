@@ -2,7 +2,7 @@
   <v-container>
     <v-card class="mx-auto" max-width="400" hover>
       <v-flex>
-        <v-img contain max-height="100px" :src="data.image"></v-img>
+        <v-img contain max-height="100px" :src="data.image"> </v-img>
       </v-flex>
       <v-card-title class="justify-center">
         <div v-if="data.metadata.labels.serviceName">
@@ -10,11 +10,7 @@
         </div>
         <div v-else>{{ data.metadata.name }}</div>
       </v-card-title>
-      <!-- <v-card-text>
-        <v-chip v-if="data.metadata.labels.chip" x-small class="justify-center">
-          {{ data.metadata.labels.chip }}</v-chip
-        >
-      </v-card-text> -->
+
       <v-divider></v-divider>
       <v-card-text class="text--primary">
         <div class="mb-4">
@@ -25,8 +21,6 @@
       <v-spacer></v-spacer>
 
       <v-card-actions>
-        <!-- <v-btn color="orange lighten-2" text> Explore </v-btn> -->
-
         <v-spacer></v-spacer>
 
         <v-btn icon @click="show = !show">
@@ -37,10 +31,10 @@
       <v-expand-transition>
         <div v-show="show">
           <v-divider></v-divider>
-          <v-card-text v-if="data.metadata.labels.description">
-            {{ data.metadata.labels.description }}
+          <v-card-text v-if="data.metadata.annotations.description">
+            {{ data.metadata.annotations.description }}
           </v-card-text>
-          <v-card-text v-else> No Description. </v-card-text>
+          <v-card-text v-else> No description available. </v-card-text>
         </div>
       </v-expand-transition>
     </v-card>
