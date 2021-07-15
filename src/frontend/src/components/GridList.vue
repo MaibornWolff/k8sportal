@@ -1,6 +1,6 @@
 <template>
   <v-layout class="ma-3">
-    <v-flex xs12 sm6 offset-sm3>
+    <v-flex xs12 md6 offset-md3>
       <v-card>
         <v-container v-bind="{ [`grid-list-${size}`]: true }" fluid>
           <v-row justify="space-between">
@@ -8,9 +8,23 @@
               <h1>Services</h1>
             </v-col>
             <v-spacer></v-spacer>
+            <v-col md="4" class="d-flex align-center">
+              <h3>Filter:</h3>
+
+              <v-chip-group active-class="primary--text" column>
+                <v-chip
+                  v-for="(chip, key) in chips"
+                  :key="key"
+                  x-small
+                  class="ml-1"
+                  @click="filterTiles(chip)"
+                  >{{ chip }}</v-chip
+                >
+              </v-chip-group>
+            </v-col>
           </v-row>
           <v-layout row wrap>
-            <v-flex v-for="(tile, key) in tiles" :key="key" xs4>
+            <v-flex v-for="(tile, key) in renderTile" :key="key" xs4>
               <v-card flat tile>
                 <Tile :data="tile" />
               </v-card>
@@ -37,6 +51,9 @@ export default {
       tiles: [],
       images: [],
       names: [],
+      chips: ["keiner"],
+      selectedTiles: "all",
+      filteredTiles: [],
     };
   },
   methods: {
@@ -72,6 +89,24 @@ export default {
         });
       });
     },
+    getAvailableChips() {
+      this.tiles.map((tile) => {
+        if (!this.chips.includes(tile.metadata.labels.chips)) {
+          this.chips.push(tile.metadata.labels.chips);
+        }
+      });
+    },
+    filterTiles(chip) {
+      this.isActive = !this.isActive;
+      if (chip == "keiner") {
+        this.selectedTiles = "all";
+      } else {
+        this.filteredTiles = this.tiles.filter((tile) => {
+          return tile.metadata.labels.chips == chip;
+        });
+        this.selectedTiles = "filter";
+      }
+    },
   },
   mounted() {
     axios
@@ -81,8 +116,20 @@ export default {
 
         this.getLogoNames();
         this.getImages();
+        this.getAvailableChips();
       })
       .catch((err) => console.log(err));
+  },
+  computed: {
+    renderTile() {
+      return this[this.selectedTiles];
+    },
+    all() {
+      return this.tiles;
+    },
+    filter() {
+      return this.filteredTiles;
+    },
   },
 };
 </script>

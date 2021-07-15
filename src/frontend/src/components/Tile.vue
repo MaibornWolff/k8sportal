@@ -14,8 +14,14 @@
       <v-divider></v-divider>
       <v-card-text class="text--primary">
         <div class="mb-4">
-          {{ data.metadata.selfLink }}
+          <a :href="data.metadata.selfLink" target="_blank">{{
+            data.metadata.selfLink
+          }}</a>
         </div>
+
+        <v-chip x-small>
+          {{ data.metadata.labels.chips }}
+        </v-chip>
       </v-card-text>
 
       <v-spacer></v-spacer>
