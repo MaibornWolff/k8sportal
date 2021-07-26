@@ -1,16 +1,22 @@
 <template>
   <v-layout class="ma-3">
-    <v-flex xs12 md6 offset-md3>
-      <v-card>
-        <v-container v-bind="{ [`grid-list-${size}`]: true }" fluid>
-          <v-row justify="space-between">
-            <v-col md="4 text-overline mx-3">
+    <v-flex xs12>
+      <v-sheet>
+        <v-container>
+          <v-row justify="center">
+            <v-col>
               <h1>Services</h1>
             </v-col>
-            <v-spacer></v-spacer>
-            <v-col md="4" class="d-flex align-center">
-              <h3>Filter:</h3>
 
+            <v-col md="2">
+              <v-text-field
+                label="Search"
+                prepend-icon="mdi-magnify"
+                v-on:input="resultQuery($event)"
+              ></v-text-field>
+            </v-col>
+            <v-col md="3" offset-md="2" class="d-flex align-center">
+              <h3>Filter:</h3>
               <v-chip-group active-class="primary--text" column>
                 <v-chip
                   v-for="(chip, key) in chips"
@@ -23,15 +29,16 @@
               </v-chip-group>
             </v-col>
           </v-row>
-          <v-layout row wrap>
-            <v-flex v-for="(tile, key) in renderTile" :key="key" xs4>
+
+          <v-row>
+            <v-flex v-for="(tile, key) in renderTile" :key="key">
               <v-card flat tile>
                 <Tile :data="tile" />
               </v-card>
             </v-flex>
-          </v-layout>
+          </v-row>
         </v-container>
-      </v-card>
+      </v-sheet>
     </v-flex>
   </v-layout>
 </template>
@@ -47,13 +54,14 @@ export default {
   },
   data() {
     return {
-      size: "xl",
       tiles: [],
       images: [],
       names: [],
       chips: ["keiner"],
       selectedTiles: "all",
       filteredTiles: [],
+      searchResult: [],
+      isSearch: false,
     };
   },
   methods: {
@@ -107,6 +115,29 @@ export default {
         this.selectedTiles = "filter";
       }
     },
+    resultQuery(event) {
+      const searchQuery = event;
+      if (searchQuery) {
+        this.isSearch = true;
+        this.searchResult = this.tiles.filter((tile) => {
+          if (tile.metadata.labels.serviceName) {
+            return searchQuery
+              .toLowerCase()
+              .split(" ")
+              .every((v) =>
+                tile.metadata.labels.serviceName.toLowerCase().includes(v)
+              );
+          } else {
+            return searchQuery
+              .toLowerCase()
+              .split(" ")
+              .every((v) => tile.metadata.name.toLowerCase().includes(v));
+          }
+        });
+      } else {
+        this.isSearch = false;
+      }
+    },
   },
   mounted() {
     axios
@@ -121,14 +152,25 @@ export default {
       .catch((err) => console.log(err));
   },
   computed: {
+    // filter by tag
     renderTile() {
       return this[this.selectedTiles];
     },
     all() {
-      return this.tiles;
+      if (this.isSearch) {
+        return this.searchResult;
+      } else {
+        return this.tiles;
+      }
     },
     filter() {
-      return this.filteredTiles;
+      if (this.isSearch) {
+        return this.searchResult.filter((value) =>
+          this.filteredTiles.includes(value)
+        );
+      } else {
+        return this.filteredTiles;
+      }
     },
   },
 };

@@ -1,6 +1,15 @@
 <template>
   <v-container>
-    <v-card class="mx-auto" max-width="400" hover>
+    <v-card class="mx-auto" width="300" hover>
+      <v-list-item one-line>
+        <v-list-item-content>
+          <v-list-title>
+            <v-chip x-small>
+              {{ data.metadata.labels.chips }}
+            </v-chip>
+          </v-list-title>
+        </v-list-item-content>
+      </v-list-item>
       <v-flex>
         <v-img contain max-height="100px" :src="data.image"> </v-img>
       </v-flex>
@@ -12,21 +21,17 @@
       </v-card-title>
 
       <v-divider></v-divider>
-      <v-card-text class="text--primary">
-        <div class="mb-4">
-          <a :href="data.metadata.selfLink" target="_blank">{{
-            data.metadata.selfLink
-          }}</a>
-        </div>
-
-        <v-chip x-small>
-          {{ data.metadata.labels.chips }}
-        </v-chip>
-      </v-card-text>
-
-      <v-spacer></v-spacer>
 
       <v-card-actions>
+        <v-btn
+          color="blue-grey"
+          class="ma-2 white--text"
+          :href="data.metadata.selfLink"
+          target="_blank"
+        >
+          Service
+          <v-icon right dark> mdi-chevron-right </v-icon>
+        </v-btn>
         <v-spacer></v-spacer>
 
         <v-btn icon @click="show = !show">

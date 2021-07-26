@@ -1,7 +1,5 @@
 <template>
-  <div class="home">
-    <GridList />
-  </div>
+  <GridList />
 </template>
 
 <script>
