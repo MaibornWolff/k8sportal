@@ -64,6 +64,7 @@ export default {
       isSearch: false,
     };
   },
+
   methods: {
     // imports all image path in assets/ folder -> push in images
     importAll(r) {
@@ -141,7 +142,7 @@ export default {
   },
   mounted() {
     axios
-      .get(process.env.VUE_APP_API_ENDPOINT)
+      .get(this.api_endpoint)
       .then((res) => {
         this.tiles = res.data;
 
@@ -152,6 +153,8 @@ export default {
       .catch((err) => console.log(err));
   },
   computed: {
+    // Dynamic env variable
+    api_endpoint: function() {return this.VUE_APP_API_ENDPOINT},
     // filter by tag
     renderTile() {
       return this[this.selectedTiles];

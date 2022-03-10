@@ -12,6 +12,7 @@ COPY package*.json ./
 # install project dependencies
 RUN npm install
 
+#
 # copy project files and folders to the current working directory (i.e. 'app' folder)
 COPY . .
 
@@ -19,4 +20,7 @@ COPY . .
 RUN npm run build
 
 EXPOSE 8080
-CMD [ "http-server", "dist" ]
+
+# make script executable and update dynamic env
+RUN chmod +x ./start-server.sh
+CMD [ "./start-server.sh"]

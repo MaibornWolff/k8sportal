@@ -25,10 +25,13 @@
 <script>
 export default {
   name: "App",
-  data: () => ({
-    customTitle: process.env.VUE_APP_CUSTOM.TITLE,
-    customLogo: process.env.VUE_APP_CUSTOM.LOGO,
-  }),
+  // Use computed for variables from the dynamic environment to create local
+  // copies and avoid changes propagating through the entire
+  // application.
+  computed:  {
+      customTitle: function() {return this.VUE_APP_CUSTOM_TITLE},
+      customLogo: function() {return this.VUE_APP_CUSTOM_LOGO}
+  },
   created() {
     document.title = this.customTitle;
   },
