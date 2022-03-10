@@ -40,6 +40,17 @@ service:
   type: LoadBalancer
   port: 80
 
+deployment:
+    containerEnv:
+        - name: FRONTEND_APP_CUSTOM_TITLE
+          value: "k8s Cluster Portal"
+        - name: FRONTEND_APP_CUSTOM_LOGO
+          value: "maibornwolff.svg"
+        - name: API_SERVICE_ADDRESS
+          value: "localhost"
+        - name: API_SERVICE_PORT
+          value: "8000"
+
 ingress:
   enabled: false
   annotations: {}
