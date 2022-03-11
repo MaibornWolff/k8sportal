@@ -37,7 +37,7 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
 
 deployment:
@@ -47,22 +47,15 @@ deployment:
         - name: FRONTEND_APP_CUSTOM_LOGO
           value: "maibornwolff.svg"
         - name: API_SERVICE_ADDRESS
-          value: "localhost"
-        - name: API_SERVICE_PORT
-          value: "8000"
+          value: "localhost/k8sportal"
 
 ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: frontend.local
-      paths:
-      - path: /service
-        backend:
-          serviceName: frontend-k8s
-          servicePort: 80
+  # Capture suffix for rewriting purposes
+  paths: ["/"]
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:

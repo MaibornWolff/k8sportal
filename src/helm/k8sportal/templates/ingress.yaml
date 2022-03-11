@@ -27,11 +27,9 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
-      http:
+    - http:
         paths:
-          {{- range .paths }}
+          {{- range .Values.ingress.paths }}
           - path: {{ . }}
             pathType: Prefix
             backend:
@@ -40,5 +38,4 @@ spec:
                 port:
                   number: {{ $svcPort }}
           {{- end }}
-    {{- end }}
   {{- end }}
