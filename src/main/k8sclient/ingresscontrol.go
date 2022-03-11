@@ -12,11 +12,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var storeIngresses cache.Store
+
 //IngressInform reacts to changed services
 func IngressInform(factory informers.SharedInformerFactory) {
 
 	informer := factory.Networking().V1().Ingresses().Informer()
-
+    storeIngresses = informer.GetStore()
 	stopper := make(chan struct{})
 	defer close(stopper)
 	defer runtime.HandleCrash()
@@ -60,4 +62,10 @@ func onIngDelete(obj interface{}) {
 	if _, ok := deletedIngess.Labels["clusterPortalShow"]; ok {
 		log.Info().Msgf("Received ingress to delete: %v", deletedIngess.Name)
 	}
+}
+
+func GetAllIngresses() (list []interface{}) {
+    storelist := storeIngresses.List()
+	list = filter(storelist, labelmatch)
+	return
 }

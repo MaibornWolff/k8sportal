@@ -12,13 +12,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var store cache.Store
+var storeServices cache.Store
 
 //ServiceInform reacts to changed services
 func ServiceInform(factory informers.SharedInformerFactory) {
 
 	informer := factory.Core().V1().Services().Informer()
-	store = informer.GetStore()
+	storeServices = informer.GetStore()
 	stopper := make(chan struct{})
 	defer close(stopper)
 	defer runtime.HandleCrash()
@@ -65,7 +65,7 @@ func onSvcDelete(obj interface{}) {
 }
 
 func GetAllServices() (list []interface{}) {
-	storelist := store.List()
+	storelist := storeServices.List()
 	list = filter(storelist, labelmatch)
 	return
 }

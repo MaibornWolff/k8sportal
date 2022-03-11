@@ -38,6 +38,10 @@ func StartWebserver() {
 		handleGetServices(ginCtx)
 	})
 
+    router.GET("/api/ingresses", func(ginCtx *gin.Context) {
+		handleGetIngresses(ginCtx)
+	})
+
 	router.Run(":80")
 }
 
@@ -82,5 +86,10 @@ func handleGetExistingServices(ginCtx *gin.Context) []*model.Service {
 	// }
 
 	return existingServices
+
+}
+
+func handleGetIngresses(ginCtx *gin.Context) {
+	ginCtx.JSON(http.StatusOK, k8sclient.GetAllIngresses())
 
 }
