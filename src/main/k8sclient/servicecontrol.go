@@ -4,13 +4,15 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-
+	"k8sportal/model"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 )
+
+const annotation string = "clusterPortalShow"
 
 var storeServices cache.Store
 
@@ -64,9 +66,16 @@ func onSvcDelete(obj interface{}) {
 	}
 }
 
-func GetAllServices() (list []interface{}) {
-	storelist := storeServices.List()
-	list = filter(storelist, labelmatch)
+func GetAllServices() (serviceList []*model.Service) {
+	storeList := storeServices.List()
+    for _, obj := range storeList {
+        if !labelmatch(obj, annotation) {
+            continue
+        }
+        service := mapToService(obj)
+        addIngressRules(service)
+        serviceList = append(serviceList, service)
+    }
 	return
 }
 
@@ -75,21 +84,32 @@ func filter(list []interface{}, match func(v1.Object, string) bool) (ret []inter
 		// provides an object interface that allows us to filter for metadata easily
 		v1obj := obj.(v1.Object)
 		// TOOD should be constant
-		input := "clusterPortalShow"
-		if match(v1obj, input) {
+		if match(v1obj, annotation) {
 			ret = append(ret, obj)
 		}
 	}
 	return
 }
 
-func labelmatch(obj v1.Object, input string) (result bool) {
+func labelmatch(obj interface{}, input string) (result bool) {
+    v1Obj := obj.(v1.Object)
 	result = false
-	mapresult := obj.GetLabels()
+	mapresult := v1Obj.GetLabels()
 	log.Info().Msgf("mapresult from getLabels: %v", mapresult)
 	if mapresult[input] == "true" {
 		log.Info().Msgf("mapresult matches %s: %v", input, mapresult)
 		result = true
 	}
 	return
+}
+
+func mapToService(obj interface{}) (ret *model.Service) {
+    k8sService := obj.(*corev1.Service)
+    ret = &model.Service{
+        ServiceName: k8sService.Name,
+        Category: k8sService.Labels["clusterPortalCategory"],
+        ServiceExists: true,
+
+    }
+   return
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-
+    "k8sportal/model"
 	networkingv1 "k8s.io/api/networking/v1"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -64,8 +64,25 @@ func onIngDelete(obj interface{}) {
 	}
 }
 
-func GetAllIngresses() (list []interface{}) {
-    storelist := storeIngresses.List()
-	list = filter(storelist, labelmatch)
-	return
+func addIngressRules(service *model.Service) {
+    storeList := storeIngresses.List()
+
+    for _, obj := range storeList {
+         if !labelmatch(obj, annotation) {
+             continue
+         }
+         k8sIngress :=  obj.(*networkingv1.Ingress)
+         
+         for _, ingressRule := range k8sIngress.Spec.Rules {
+             ingressServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
+             if service.ServiceName !=  ingressServiceName {
+                 continue
+             }
+             service.IngressRules = append(service.IngressRules,
+                 model.IngressRule{
+                    IngressHost: ingressRule.Host,
+                    IngressPath: ingressRule.HTTP.Paths[0].Path})
+            service.IngressExists = true
+         }
+    }
 }
