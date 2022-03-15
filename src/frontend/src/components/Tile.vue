@@ -23,9 +23,11 @@
 
       <v-card-actions>
         <v-btn
+          v-if="data.ingressRules.length > 0"
           color="blue-grey"
           class="ma-2 white--text"
-          :href="'http://'+data.ingressRules[0].ingressHost"
+          :set="(ingressRule = data.ingressRules[0])"
+          :href="'http://' + ingressRule.ingressHost + ingressRule.ingressPath"
         >
           Service
           <v-icon right dark> mdi-chevron-right </v-icon>
