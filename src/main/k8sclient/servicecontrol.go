@@ -4,21 +4,26 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-
+	"k8sportal/model"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 )
 
-var store cache.Store
+const annotation string = "clusterPortalShow"
+
+var storeServices cache.Store
+
+var serviceCache serviceCustomCache = serviceCustomCache{
+    servicesMap: make(map[string]*model.Service),
+}
 
 //ServiceInform reacts to changed services
 func ServiceInform(factory informers.SharedInformerFactory) {
 
 	informer := factory.Core().V1().Services().Informer()
-	store = informer.GetStore()
+	storeServices = informer.GetStore()
 	stopper := make(chan struct{})
 	defer close(stopper)
 	defer runtime.HandleCrash()
@@ -45,10 +50,20 @@ func ServiceInform(factory informers.SharedInformerFactory) {
 }
 
 func onSvcAdd(obj interface{}) {
-	newService := obj.(*corev1.Service)
-	if _, ok := newService.Labels["clusterPortalShow"]; ok {
-		log.Info().Msgf("Received service to add: %v", newService.Name)
+	newK8sService := obj.(*corev1.Service)
+	if _, ok := newK8sService.Labels["clusterPortalShow"]; !ok {
+	       return
 	}
+    log.Info().Msgf("Received service to add: %v", newK8sService.Name)
+    var ingressRules []model.IngressRule
+    if tmp, ok := serviceCache.GetService(newK8sService.Name); ok {
+        ingressRules = tmp.IngressRules
+    } else {
+        ingressRules = []model.IngressRule{}
+    }
+    newService := mapToService(newK8sService, ingressRules)
+    serviceCache.AddService(newService)
+
 }
 
 func onSvcUpdate(old interface{}, new interface{}) {
@@ -58,38 +73,28 @@ func onSvcUpdate(old interface{}, new interface{}) {
 }
 
 func onSvcDelete(obj interface{}) {
-	deletedService := obj.(*corev1.Service)
-	if _, ok := deletedService.Labels["clusterPortalShow"]; ok {
-		log.Info().Msgf("Received service to delete: %v", deletedService.Name)
+	deletedK8sService := obj.(*corev1.Service)
+	if _, ok := deletedK8sService.Labels["clusterPortalShow"]; !ok {
+	       return
 	}
+    log.Info().Msgf("Received service to delete: %v", deletedK8sService.Name)
+
+    serviceCache.DeleteService(deletedK8sService.Name)
+
 }
 
-func GetAllServices() (list []interface{}) {
-	storelist := store.List()
-	list = filter(storelist, labelmatch)
-	return
+func GetAllServices() []*model.Service {
+	return serviceCache.ToList()
 }
 
-func filter(list []interface{}, match func(v1.Object, string) bool) (ret []interface{}) {
-	for _, obj := range list {
-		// provides an object interface that allows us to filter for metadata easily
-		v1obj := obj.(v1.Object)
-		// TOOD should be constant
-		input := "clusterPortalShow"
-		if match(v1obj, input) {
-			ret = append(ret, obj)
-		}
-	}
-	return
-}
+func mapToService(k8sService *corev1.Service, rules []model.IngressRule) (ret *model.Service) {
+    ret = &model.Service{
+        ServiceName: k8sService.Name,
+        Category: k8sService.Labels["clusterPortalCategory"],
+        ServiceExists: true,
+        IngressRules: rules,
+        IngressExists: len(rules) > 0,
 
-func labelmatch(obj v1.Object, input string) (result bool) {
-	result = false
-	mapresult := obj.GetLabels()
-	log.Info().Msgf("mapresult from getLabels: %v", mapresult)
-	if mapresult[input] == "true" {
-		log.Info().Msgf("mapresult matches %s: %v", input, mapresult)
-		result = true
-	}
-	return
+    }
+   return
 }

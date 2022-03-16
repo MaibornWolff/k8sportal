@@ -2,7 +2,6 @@ package web
 
 import (
 	"k8sportal/k8sclient"
-	"k8sportal/model"
 	"net/http"
 
 	"github.com/rs/zerolog/log"
@@ -12,7 +11,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	v1 "k8s.io/api/core/v1"
 )
 
 //StartWebserver Gets entries from db and presents them via the HTTP endpoint
@@ -26,7 +24,7 @@ func StartWebserver() {
 
 	router.GET("/ui/services", func(ginCtx *gin.Context) {
 		log.Info().Msg("calling ui")
-		services := handleGetExistingServices(ginCtx)
+		services := k8sclient.GetAllServices()
 		log.Info().Msgf("services: %v", services)
 		ginCtx.HTML(http.StatusOK, "index", gin.H{
 			"title":    "K8S Portal",
@@ -49,38 +47,5 @@ func handleGetServices(ginCtx *gin.Context) {
 	// 	return
 	// }
 	ginCtx.JSON(http.StatusOK, k8sclient.GetAllServices())
-
-}
-
-func handleGetExistingServices(ginCtx *gin.Context) []*model.Service {
-	// var loadedServices, err = mongodb.GetAllServices(ctx, mongoClient, mongodbDatabase, mongodbCollection)
-	// if err != nil {
-	// 	ginCtx.JSON(http.StatusNotFound, gin.H{"msg": err})
-	// }
-
-	var existingServices []*model.Service
-
-	// TODO where to fill do the mapping?
-
-	list := k8sclient.GetAllServices()
-	for _, entry := range list {
-		k8sservice := entry.(*v1.Service)
-		service := &model.Service{
-			ServiceName:   k8sservice.Name,
-			Category:      "bla",
-			ServiceExists: false,
-			IngressRules:  []model.IngressRule{},
-			IngressExists: false,
-		}
-
-		existingServices = append(existingServices, service)
-	}
-	// for _, service := range loadedServices {
-	// 	if service.Exists() {
-	// 		existingServices = append(existingServices, service)
-	// 	}
-	// }
-
-	return existingServices
 
 }

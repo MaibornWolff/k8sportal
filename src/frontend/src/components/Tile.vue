@@ -5,7 +5,7 @@
         <v-list-item-content>
           <v-list-title>
             <v-chip x-small>
-              {{ data.metadata.labels.chips }}
+              {{ data.category }}
             </v-chip>
           </v-list-title>
         </v-list-item-content>
@@ -14,20 +14,20 @@
         <v-img contain max-height="100px" :src="data.image"> </v-img>
       </v-flex>
       <v-card-title class="justify-center">
-        <div v-if="data.metadata.labels.serviceName">
-          {{ data.metadata.labels.serviceName }}
+        <div>
+          {{ data.serviceName }}
         </div>
-        <div v-else>{{ data.metadata.name }}</div>
       </v-card-title>
 
       <v-divider></v-divider>
 
       <v-card-actions>
         <v-btn
+          v-if="data.ingressRules.length > 0"
           color="blue-grey"
           class="ma-2 white--text"
-          :href="data.metadata.selfLink"
-          target="_blank"
+          :set="(ingressRule = data.ingressRules[0])"
+          :href="'http://' + ingressRule.ingressHost + ingressRule.ingressPath"
         >
           Service
           <v-icon right dark> mdi-chevron-right </v-icon>
@@ -42,8 +42,8 @@
       <v-expand-transition>
         <div v-show="show">
           <v-divider></v-divider>
-          <v-card-text v-if="data.metadata.annotations.description">
-            {{ data.metadata.annotations.description }}
+          <v-card-text v-if="data.description">
+            {{ data.description }}
           </v-card-text>
           <v-card-text v-else> No description available. </v-card-text>
         </div>

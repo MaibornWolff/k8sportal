@@ -64,6 +64,7 @@ export default {
       isSearch: false,
     };
   },
+
   methods: {
     // imports all image path in assets/ folder -> push in images
     importAll(r) {
@@ -85,13 +86,13 @@ export default {
       const img = require.context("../assets/", false, /\.svg$/);
       this.tiles.map((tile) => {
         this.names.forEach((name) => {
-          if (!tile.metadata.name.includes(name)) {
+          if (!tile.serviceName.includes(name)) {
             tile["image"] = img("./" + "default" + ".svg");
           }
         });
 
         this.names.forEach((name) => {
-          if (tile.metadata.name.includes(name)) {
+          if (tile.serviceName.includes(name)) {
             tile["image"] = img("./" + name + ".svg");
           }
         });
@@ -99,8 +100,8 @@ export default {
     },
     getAvailableChips() {
       this.tiles.map((tile) => {
-        if (!this.chips.includes(tile.metadata.labels.chips)) {
-          this.chips.push(tile.metadata.labels.chips);
+        if (!this.chips.includes(tile.category)) {
+          this.chips.push(tile.category);
         }
       });
     },
@@ -110,7 +111,7 @@ export default {
         this.selectedTiles = "all";
       } else {
         this.filteredTiles = this.tiles.filter((tile) => {
-          return tile.metadata.labels.chips == chip;
+          return tile.category == chip;
         });
         this.selectedTiles = "filter";
       }
@@ -120,19 +121,10 @@ export default {
       if (searchQuery) {
         this.isSearch = true;
         this.searchResult = this.tiles.filter((tile) => {
-          if (tile.metadata.labels.serviceName) {
             return searchQuery
               .toLowerCase()
               .split(" ")
-              .every((v) =>
-                tile.metadata.labels.serviceName.toLowerCase().includes(v)
-              );
-          } else {
-            return searchQuery
-              .toLowerCase()
-              .split(" ")
-              .every((v) => tile.metadata.name.toLowerCase().includes(v));
-          }
+              .every((v) => tile.serviceName.toLowerCase().includes(v));
         });
       } else {
         this.isSearch = false;
@@ -141,7 +133,7 @@ export default {
   },
   mounted() {
     axios
-      .get(process.env.VUE_APP_API_ENDPOINT)
+      .get(this.api_endpoint)
       .then((res) => {
         this.tiles = res.data;
 
@@ -152,6 +144,8 @@ export default {
       .catch((err) => console.log(err));
   },
   computed: {
+    // Dynamic env variable
+    api_endpoint: function() {return this.VUE_APP_API_ENDPOINT},
     // filter by tag
     renderTile() {
       return this[this.selectedTiles];
