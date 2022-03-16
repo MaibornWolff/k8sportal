@@ -55,7 +55,13 @@ func onSvcAdd(obj interface{}) {
 	       return
 	}
     log.Info().Msgf("Received service to add: %v", newK8sService.Name)
-    newService := mapToService(newK8sService)
+    var ingressRules []model.IngressRule
+    if tmp, ok := serviceCache.GetService(newK8sService.Name); ok {
+        ingressRules = tmp.IngressRules
+    } else {
+        ingressRules = []model.IngressRule{}
+    }
+    newService := mapToService(newK8sService, ingressRules)
     serviceCache.AddService(newService)
 
 }
@@ -81,12 +87,13 @@ func GetAllServices() []*model.Service {
 	return serviceCache.ToList()
 }
 
-func mapToService(k8sService *corev1.Service) (ret *model.Service) {
+func mapToService(k8sService *corev1.Service, rules []model.IngressRule) (ret *model.Service) {
     ret = &model.Service{
         ServiceName: k8sService.Name,
         Category: k8sService.Labels["clusterPortalCategory"],
         ServiceExists: true,
-        IngressRules: []model.IngressRule{},
+        IngressRules: rules,
+        IngressExists: len(rules) > 0,
 
     }
    return

@@ -52,23 +52,25 @@ func onIngAdd(obj interface{}) {
     log.Info().Msgf("Received ingress to add: %v", newIngress.Name)
 
     for _, ingressRule := range newIngress.Spec.Rules {
-        ingressServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
-        var service *model.Service
-        if tmp, ok := serviceCache.GetService(ingressServiceName); ok {
-            service = tmp
-        } else {
-            log.Info().Msgf("Ingress received without corresponding service")
-            service = &model.Service{
-                ServiceName: ingressServiceName,
-                IngressRules: make([]model.IngressRule, 0, 5),
+        for _, ingressPath := range ingressRule.HTTP.Paths {
+            ingressServiceName := ingressPath.Backend.Service.Name
+            var service *model.Service
+            if tmp, ok := serviceCache.GetService(ingressServiceName); ok {
+                service = tmp
+            } else {
+                log.Info().Msgf("Ingress received without corresponding service")
+                service = &model.Service{
+                    ServiceName: ingressServiceName,
+                    IngressRules: make([]model.IngressRule, 0, 5),
+                }
             }
+            service.IngressRules = append(service.IngressRules, model.IngressRule{
+                IngressHost: ingressRule.Host,
+                IngressPath: ingressPath.Path,
+            })
+            service.IngressExists = true
+            serviceCache.AddService(service)
         }
-        service.IngressRules = append(service.IngressRules, model.IngressRule{
-            IngressHost: ingressRule.Host,
-            IngressPath: ingressRule.HTTP.Paths[0].Path,
-        })
-        service.IngressExists = true
-        serviceCache.AddService(service)
     }
 }
 
@@ -85,19 +87,22 @@ func onIngDelete(obj interface{}) {
 	}
     log.Info().Msgf("Received ingress to delete: %v", deletedIngress.Name)
     for _, ingressRule := range deletedIngress.Spec.Rules {
-        ingressServiceName := ingressRule.HTTP.Paths[0].Backend.Service.Name
-        if service, ok := serviceCache.GetService(ingressServiceName); ok {
-            deletedIngressRule := model.IngressRule{
-                IngressHost: ingressRule.Host,
-                IngressPath: ingressRule.HTTP.Paths[0].Path,
-            }
 
-            rules := service.IngressRules
-            rules = deleteIngressRule(rules, deletedIngressRule)
-            service.IngressRules = rules
-            service.IngressExists = len(rules) > 0
-            log.Info().Msgf("len of rules %v", len(rules))
-            serviceCache.AddService(service)
+        for _, ingressPath := range ingressRule.HTTP.Paths {
+
+            ingressServiceName := ingressPath.Backend.Service.Name
+            if service, ok := serviceCache.GetService(ingressServiceName); ok {
+                deletedIngressRule := model.IngressRule{
+                    IngressHost: ingressRule.Host,
+                    IngressPath: ingressPath.Path,
+                }
+
+                rules := service.IngressRules
+                rules = deleteIngressRule(rules, deletedIngressRule)
+                service.IngressRules = rules
+                service.IngressExists = len(rules) > 0
+                serviceCache.AddService(service)
+            }
         }
     }
 }
